@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prospector - MCA Lead Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --dark-color: #1a1d21;
+            --light-bg: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--dark-color), #2d3436);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #eee;
+            font-weight: 600;
+            border-radius: 12px 12px 0 0 !important;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #0b5ed7);
+            border: none;
+            padding: 10px 24px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0b5ed7, #0a58ca);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #157347);
+            border: none;
+        }
+
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-color), #0dcaf0);
+            border-radius: 4px;
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 8px;
+            padding: 12px 20px;
+            color: var(--secondary-color);
+            font-weight: 500;
+        }
+
+        .nav-pills .nav-link.active {
+            background: var(--primary-color);
+        }
+
+        .badge-hot {
+            background: linear-gradient(135deg, #ff6b6b, var(--danger-color));
+        }
+
+        .badge-medium {
+            background: linear-gradient(135deg, #ffd93d, #ff9f43);
+            color: #333;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-card h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-card p {
+            color: var(--secondary-color);
+            margin: 0;
+        }
+
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table thead th {
+            background: var(--light-bg);
+            border-bottom: 2px solid #dee2e6;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        #resultsArea {
+            display: none;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .file-item:hover {
+            background: var(--light-bg);
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, var(--dark-color), #2d3436);
+            color: white;
+            padding: 40px 0;
+            margin-bottom: 30px;
+        }
+
+        .hero-section h1 {
+            font-weight: 700;
+        }
+
+        .hero-section p {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .stat-card h2 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-search me-2"></i>Prospector
+            </a>
+            <span class="navbar-text text-light">
+                MCA Lead Finder
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Tab Navigation -->
+        <ul class="nav nav-pills mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="prospect-tab" data-bs-toggle="pill" data-bs-target="#prospect" type="button">
+                    <i class="bi bi-truck me-1"></i> Find Prospects
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="lookup-tab" data-bs-toggle="pill" data-bs-target="#lookup" type="button">
+                    <i class="bi bi-search me-1"></i> DOT Lookup
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button">
+                    <i class="bi bi-building me-1"></i> Name Search
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="city-tab" data-bs-toggle="pill" data-bs-target="#city" type="button">
+                    <i class="bi bi-geo-alt me-1"></i> City Search
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
+                    <i class="bi bi-folder me-1"></i> Downloads
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="mainTabsContent">
+            <!-- Find Prospects Tab -->
+            <div class="tab-pane fade show active" id="prospect" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="prospectForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="states"
+                                               value="FL,GA,TX,CA"
+                                               placeholder="e.g., FL,GA,TX">
+                                        <small class="text-muted">Comma-separated state abbreviations</small>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Min Trucks</label>
+                                            <input type="number" class="form-control" id="minTrucks" value="1" min="1">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Max Trucks</label>
+                                            <input type="number" class="form-control" id="maxTrucks" value="50" min="1">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records/State</label>
+                                        <select class="form-select" id="maxRecords">
+                                            <option value="1000">1,000 (Quick)</option>
+                                            <option value="2500">2,500</option>
+                                            <option value="5000" selected>5,000 (Standard)</option>
+                                            <option value="10000">10,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startProspectBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Start Search
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Scoring Guide -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-star me-2"></i>Scoring Guide
+                            </div>
+                            <div class="card-body small">
+                                <table class="table table-sm mb-0">
+                                    <tr><td>Base Score</td><td class="text-end">+50</td></tr>
+                                    <tr><td>5-20 trucks (sweet spot)</td><td class="text-end">+30</td></tr>
+                                    <tr><td>2-4 trucks</td><td class="text-end">+20</td></tr>
+                                    <tr><td>21-35 trucks</td><td class="text-end">+15</td></tr>
+                                    <tr><td>Has phone</td><td class="text-end">+10</td></tr>
+                                    <tr><td>Has MC authority</td><td class="text-end">+10</td></tr>
+                                </table>
+                                <hr>
+                                <div><span class="badge badge-hot">70+</span> Hot - Call first</div>
+                                <div><span class="badge badge-medium">50-69</span> Medium - Email sequence</div>
+                                <div><span class="badge bg-secondary">&lt;50</span> Lower - Nurture</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <!-- Progress Section -->
+                        <div class="card mb-4" id="prospectProgress" style="display: none;">
+                            <div class="card-body">
+                                <h5><i class="bi bi-hourglass-split me-2"></i>Search Progress</h5>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="progressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="progressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <!-- Results Section -->
+                        <div id="prospectResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-primary" id="totalCount">0</h2>
+                                        <p>Total Prospects</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-danger" id="hotCount">0</h2>
+                                        <p>Hot (70+)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-warning" id="mediumCount">0</h2>
+                                        <p>Medium</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="phoneCount">0</h2>
+                                        <p>With Phone</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-download me-2"></i>Download Results</span>
+                                </div>
+                                <div class="card-body">
+                                    <div id="downloadButtons"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Initial State -->
+                        <div class="card" id="prospectInitial">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-truck display-1 text-muted mb-3"></i>
+                                <h4>Find Trucking Prospects</h4>
+                                <p class="text-muted">Configure your search parameters and click "Start Search" to find motor carriers from the FMCSA database.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOT Lookup Tab -->
+            <div class="tab-pane fade" id="lookup" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-search me-2"></i>DOT Number Lookup
+                            </div>
+                            <div class="card-body">
+                                <form id="lookupForm" class="row g-3 mb-4">
+                                    <div class="col-md-8">
+                                        <input type="text" class="form-control form-control-lg" id="dotNumber"
+                                               placeholder="Enter DOT Number (e.g., 1234567)">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary btn-lg w-100" id="lookupBtn">
+                                            <i class="bi bi-search me-1"></i> Look Up
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div id="lookupResults"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Name Search Tab -->
+            <div class="tab-pane fade" id="search" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-building me-2"></i>Search by Company Name
+                            </div>
+                            <div class="card-body">
+                                <form id="searchForm" class="row g-3 mb-4">
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" id="companyName"
+                                               placeholder="Company name (partial match)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control" id="searchState"
+                                               placeholder="State" maxlength="2">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <select class="form-select" id="searchLimit">
+                                            <option value="10">10 results</option>
+                                            <option value="25" selected>25 results</option>
+                                            <option value="50">50 results</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary w-100" id="searchBtn">
+                                            <i class="bi bi-search me-1"></i> Search
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div id="searchResults"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- City Search Tab -->
+            <div class="tab-pane fade" id="city" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-10">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-geo-alt me-2"></i>Search by City
+                            </div>
+                            <div class="card-body">
+                                <form id="cityForm" class="row g-3 mb-4">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" id="cityName"
+                                               placeholder="City name (e.g., Miami)">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="text" class="form-control" id="cityState"
+                                               placeholder="State" maxlength="2">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" id="cityMinTrucks"
+                                               value="1" min="1" placeholder="Min trucks">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <input type="number" class="form-control" id="cityMaxTrucks"
+                                               value="50" min="1" placeholder="Max trucks">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary w-100" id="cityBtn">
+                                            <i class="bi bi-search me-1"></i> Search
+                                        </button>
+                                    </div>
+                                </form>
+
+                                <div id="cityResults"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Downloads Tab -->
+            <div class="tab-pane fade" id="files" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-folder me-2"></i>Available Downloads</span>
+                                <button class="btn btn-sm btn-outline-primary" onclick="loadFiles()">
+                                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                                </button>
+                            </div>
+                            <div class="card-body" id="filesList">
+                                <div class="text-center text-muted py-4">
+                                    <i class="bi bi-folder2-open display-4"></i>
+                                    <p class="mt-2">No files yet. Run a search to generate prospect lists.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 mt-5 text-muted">
+        <small>Prospector v1.0 | Data source: FMCSA (data.transportation.gov)</small>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Utility functions
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Prospect Search
+        let prospectJobId = null;
+        let prospectPollInterval = null;
+
+        document.getElementById('prospectForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('states').value,
+                min_trucks: document.getElementById('minTrucks').value,
+                max_trucks: document.getElementById('maxTrucks').value,
+                max_records: document.getElementById('maxRecords').value
+            };
+
+            document.getElementById('prospectInitial').style.display = 'none';
+            document.getElementById('prospectResults').style.display = 'none';
+            document.getElementById('prospectProgress').style.display = 'block';
+            document.getElementById('startProspectBtn').disabled = true;
+            document.getElementById('startProspectBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/prospect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                prospectJobId = result.job_id;
+
+                // Start polling for status
+                prospectPollInterval = setInterval(pollProspectStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetProspectForm();
+            }
+        });
+
+        async function pollProspectStatus() {
+            if (!prospectJobId) return;
+
+            try {
+                const response = await fetch(`/api/job/${prospectJobId}`);
+                const job = await response.json();
+
+                document.getElementById('progressBar').style.width = job.progress + '%';
+                document.getElementById('progressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(prospectPollInterval);
+                    showProspectResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(prospectPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetProspectForm();
+                }
+            } catch (error) {
+                console.error('Poll error:', error);
+            }
+        }
+
+        function showProspectResults(job) {
+            document.getElementById('prospectProgress').style.display = 'none';
+            document.getElementById('prospectResults').style.display = 'block';
+            resetProspectForm();
+
+            // Update stats
+            document.getElementById('totalCount').textContent = formatNumber(job.stats.total || 0);
+            document.getElementById('hotCount').textContent = formatNumber(job.stats.hot_count || 0);
+            document.getElementById('mediumCount').textContent = formatNumber(job.stats.medium_count || 0);
+            document.getElementById('phoneCount').textContent = formatNumber(job.stats.with_phone || 0);
+
+            // Download buttons
+            let buttons = '';
+            if (job.output_file) {
+                buttons += `<a href="/api/download/${job.output_file}" class="btn btn-success me-2 mb-2">
+                    <i class="bi bi-download me-1"></i> Download All Prospects (CSV)
+                </a>`;
+            }
+            if (job.hot_file) {
+                buttons += `<a href="/api/download/${job.hot_file}" class="btn btn-danger me-2 mb-2">
+                    <i class="bi bi-fire me-1"></i> Download Hot Prospects (CSV)
+                </a>`;
+            }
+            document.getElementById('downloadButtons').innerHTML = buttons;
+        }
+
+        function resetProspectForm() {
+            document.getElementById('startProspectBtn').disabled = false;
+            document.getElementById('startProspectBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Start Search';
+        }
+
+        // DOT Lookup
+        document.getElementById('lookupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const dotNumber = document.getElementById('dotNumber').value.trim();
+            if (!dotNumber) return;
+
+            document.getElementById('lookupBtn').disabled = true;
+            document.getElementById('lookupBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            document.getElementById('lookupResults').innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+
+            try {
+                const response = await fetch('/api/lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dot_number: dotNumber })
+                });
+
+                const { job_id } = await response.json();
+
+                // Poll for result
+                const pollLookup = setInterval(async () => {
+                    const statusRes = await fetch(`/api/job/${job_id}`);
+                    const job = await statusRes.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollLookup);
+                        document.getElementById('lookupBtn').disabled = false;
+                        document.getElementById('lookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+
+                        if (job.result) {
+                            showLookupResult(job.result);
+                        } else {
+                            document.getElementById('lookupResults').innerHTML =
+                                '<div class="alert alert-warning">No company found with that DOT number.</div>';
+                        }
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollLookup);
+                        document.getElementById('lookupBtn').disabled = false;
+                        document.getElementById('lookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+                        document.getElementById('lookupResults').innerHTML =
+                            `<div class="alert alert-danger">Error: ${job.error}</div>`;
+                    }
+                }, 500);
+            } catch (error) {
+                document.getElementById('lookupBtn').disabled = false;
+                document.getElementById('lookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+                document.getElementById('lookupResults').innerHTML =
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        function showLookupResult(data) {
+            const html = `
+                <div class="result-card">
+                    <h5 class="mb-3">${data.legal_name || 'N/A'}</h5>
+                    ${data.dba_name ? `<p class="text-muted mb-2">DBA: ${data.dba_name}</p>` : ''}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr><th>DOT Number</th><td>${data.dot_number || 'N/A'}</td></tr>
+                                <tr><th>MC Number</th><td>${data.mc_mx_ff_numbers || 'N/A'}</td></tr>
+                                <tr><th>Phone</th><td>${data.telephone || 'N/A'}</td></tr>
+                                <tr><th>Power Units</th><td>${data.power_units || 'N/A'}</td></tr>
+                                <tr><th>Drivers</th><td>${data.drivers || 'N/A'}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr><th>Address</th><td>${data.physical_address || 'N/A'}</td></tr>
+                                <tr><th>City</th><td>${data.physical_city || 'N/A'}</td></tr>
+                                <tr><th>State</th><td>${data.physical_state || 'N/A'}</td></tr>
+                                <tr><th>ZIP</th><td>${data.physical_zip || 'N/A'}</td></tr>
+                                <tr><th>Status</th><td><span class="badge ${data.operating_status === 'ACTIVE' ? 'bg-success' : 'bg-danger'}">${data.operating_status || 'N/A'}</span></td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('lookupResults').innerHTML = html;
+        }
+
+        // Name Search
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const companyName = document.getElementById('companyName').value.trim();
+            if (!companyName) return;
+
+            document.getElementById('searchBtn').disabled = true;
+            document.getElementById('searchBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            document.getElementById('searchResults').innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company_name: companyName,
+                        state: document.getElementById('searchState').value,
+                        limit: document.getElementById('searchLimit').value
+                    })
+                });
+
+                const { job_id } = await response.json();
+
+                const pollSearch = setInterval(async () => {
+                    const statusRes = await fetch(`/api/job/${job_id}`);
+                    const job = await statusRes.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollSearch);
+                        document.getElementById('searchBtn').disabled = false;
+                        document.getElementById('searchBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                        showSearchResults(job.result || []);
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollSearch);
+                        document.getElementById('searchBtn').disabled = false;
+                        document.getElementById('searchBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                        document.getElementById('searchResults').innerHTML =
+                            `<div class="alert alert-danger">Error: ${job.error}</div>`;
+                    }
+                }, 500);
+            } catch (error) {
+                document.getElementById('searchBtn').disabled = false;
+                document.getElementById('searchBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                document.getElementById('searchResults').innerHTML =
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        function showSearchResults(results) {
+            if (results.length === 0) {
+                document.getElementById('searchResults').innerHTML =
+                    '<div class="alert alert-info">No companies found matching your search.</div>';
+                return;
+            }
+
+            let html = `<p class="text-muted mb-3">Found ${results.length} companies</p>`;
+            html += '<div class="table-responsive"><table class="table table-hover">';
+            html += '<thead><tr><th>Company</th><th>Location</th><th>Trucks</th><th>Phone</th><th>DOT</th></tr></thead><tbody>';
+
+            results.forEach(r => {
+                html += `<tr>
+                    <td><strong>${r.legal_name || 'N/A'}</strong>${r.dba_name ? '<br><small class="text-muted">' + r.dba_name + '</small>' : ''}</td>
+                    <td>${r.physical_city || ''}, ${r.physical_state || ''}</td>
+                    <td>${r.power_units || 'N/A'}</td>
+                    <td>${r.telephone || 'N/A'}</td>
+                    <td>${r.dot_number || 'N/A'}</td>
+                </tr>`;
+            });
+
+            html += '</tbody></table></div>';
+            document.getElementById('searchResults').innerHTML = html;
+        }
+
+        // City Search
+        document.getElementById('cityForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const city = document.getElementById('cityName').value.trim();
+            const state = document.getElementById('cityState').value.trim().toUpperCase();
+            if (!city || !state) return;
+
+            document.getElementById('cityBtn').disabled = true;
+            document.getElementById('cityBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            document.getElementById('cityResults').innerHTML = '<div class="text-center"><div class="spinner-border"></div></div>';
+
+            try {
+                const response = await fetch('/api/city', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city: city,
+                        state: state,
+                        min_trucks: document.getElementById('cityMinTrucks').value,
+                        max_trucks: document.getElementById('cityMaxTrucks').value
+                    })
+                });
+
+                const { job_id } = await response.json();
+
+                const pollCity = setInterval(async () => {
+                    const statusRes = await fetch(`/api/job/${job_id}`);
+                    const job = await statusRes.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollCity);
+                        document.getElementById('cityBtn').disabled = false;
+                        document.getElementById('cityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                        showCityResults(job);
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollCity);
+                        document.getElementById('cityBtn').disabled = false;
+                        document.getElementById('cityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                        document.getElementById('cityResults').innerHTML =
+                            `<div class="alert alert-danger">Error: ${job.error}</div>`;
+                    }
+                }, 500);
+            } catch (error) {
+                document.getElementById('cityBtn').disabled = false;
+                document.getElementById('cityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search';
+                document.getElementById('cityResults').innerHTML =
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            }
+        });
+
+        function showCityResults(job) {
+            const results = job.result || [];
+            const totalCount = job.stats?.count || results.length;
+
+            let html = `<div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted">Found ${formatNumber(totalCount)} carriers</span>
+                ${job.output_file ? `<a href="/api/download/${job.output_file}" class="btn btn-success btn-sm">
+                    <i class="bi bi-download me-1"></i> Download All (CSV)
+                </a>` : ''}
+            </div>`;
+
+            if (results.length === 0) {
+                html += '<div class="alert alert-info">No carriers found in this city.</div>';
+            } else {
+                html += '<div class="table-responsive"><table class="table table-hover">';
+                html += '<thead><tr><th>Company</th><th>Trucks</th><th>Drivers</th><th>Phone</th><th>DOT</th></tr></thead><tbody>';
+
+                results.forEach(r => {
+                    html += `<tr>
+                        <td><strong>${r.legal_name || 'N/A'}</strong></td>
+                        <td>${r.power_units || 'N/A'}</td>
+                        <td>${r.drivers || 'N/A'}</td>
+                        <td>${r.telephone || 'N/A'}</td>
+                        <td>${r.dot_number || 'N/A'}</td>
+                    </tr>`;
+                });
+
+                html += '</tbody></table></div>';
+                if (totalCount > results.length) {
+                    html += `<p class="text-muted text-center">Showing first ${results.length} of ${formatNumber(totalCount)} results. Download CSV for complete list.</p>`;
+                }
+            }
+
+            document.getElementById('cityResults').innerHTML = html;
+        }
+
+        // Files List
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+
+                if (files.length === 0) {
+                    document.getElementById('filesList').innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <i class="bi bi-folder2-open display-4"></i>
+                            <p class="mt-2">No files yet. Run a search to generate prospect lists.</p>
+                        </div>`;
+                    return;
+                }
+
+                let html = '';
+                files.forEach(f => {
+                    const date = new Date(f.created).toLocaleString();
+                    html += `<div class="file-item">
+                        <div>
+                            <i class="bi bi-file-earmark-spreadsheet text-success me-2"></i>
+                            <strong>${f.name}</strong>
+                            <br><small class="text-muted">${formatBytes(f.size)} - ${date}</small>
+                        </div>
+                        <a href="/api/download/${f.name}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </div>`;
+                });
+
+                document.getElementById('filesList').innerHTML = html;
+            } catch (error) {
+                document.getElementById('filesList').innerHTML =
+                    `<div class="alert alert-danger">Error loading files: ${error.message}</div>`;
+            }
+        }
+
+        // Load files when switching to files tab
+        document.getElementById('files-tab').addEventListener('click', loadFiles);
+
+        // Initial load
+        loadFiles();
+    </script>
+</body>
+</html>

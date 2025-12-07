@@ -11,9 +11,48 @@ Prospector is a flexible, extensible tool for finding and scoring business prosp
 - **Smart Scoring**: Configurable scoring engine to rank prospects by fit
 - **Lead Enrichment**: Enhance existing lead lists with official data
 - **Multiple Exports**: CSV and Excel output with automatic "hot prospects" files
+- **Web Interface**: Browser-based UI perfect for Replit deployment
 - **CLI & API**: Use from command line or integrate into your workflows
 
-## Quick Start
+---
+
+## Replit Deployment (Recommended)
+
+### Quick Start on Replit
+
+1. **Fork/Import to Replit**
+   - Go to [replit.com](https://replit.com)
+   - Click "Create Repl" → "Import from GitHub"
+   - Paste the repository URL
+
+2. **Click Run**
+   - Replit will automatically install dependencies
+   - The web interface will start on port 5000
+   - Access via the Webview panel or the provided URL
+
+3. **Optional: Add API Token** (for higher rate limits)
+   - Go to "Secrets" (lock icon in sidebar)
+   - Add: `SOCRATA_APP_TOKEN` = your token from data.transportation.gov
+
+### Web Interface Features
+
+The web UI provides:
+- **Find Prospects**: Configure and run bulk searches by state
+- **DOT Lookup**: Look up individual companies by DOT number
+- **Name Search**: Search by company name with state filter
+- **City Search**: Find all carriers in a specific city
+- **Downloads**: Access all generated CSV files
+
+### Replit-Specific Notes
+
+- Files are persisted in the `/output` directory
+- Long searches run in background threads with progress updates
+- The app auto-restarts when you make changes
+- For production use, consider upgrading to Replit's "Always On" feature
+
+---
+
+## Local Installation
 
 ### Installation
 
@@ -244,10 +283,15 @@ python main.py trucking --app-token your_token_here
 
 ```
 Prospector/
-├── main.py                 # Entry point
+├── app.py                  # Flask web application (Replit entry point)
+├── main.py                 # CLI entry point
 ├── requirements.txt        # Dependencies
+├── .replit                 # Replit configuration
+├── replit.nix              # Replit system dependencies
 ├── config/
 │   └── default.yaml        # Default configuration
+├── templates/
+│   └── index.html          # Web UI template
 ├── prospector/
 │   ├── __init__.py
 │   ├── cli.py              # Command-line interface
@@ -258,11 +302,14 @@ Prospector/
 │   ├── industries/
 │   │   ├── __init__.py
 │   │   └── trucking.py     # FMCSA implementation
+│   ├── exporters/
+│   │   ├── csv_exporter.py
+│   │   └── excel_exporter.py
 │   └── utils/
 │       ├── formatting.py   # Data formatting
 │       └── display.py      # CLI display helpers
-├── output/                 # Default output directory
-└── docs/                   # Additional documentation
+├── output/                 # Generated CSV files
+└── tests/                  # Unit tests
 ```
 
 ## License
