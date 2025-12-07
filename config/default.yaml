@@ -1,0 +1,90 @@
+# Prospector Default Configuration
+# =================================
+# Copy this file to config/local.yaml and customize for your needs
+
+# Trucking Industry Settings
+trucking:
+  # Target states (use state abbreviations)
+  target_states:
+    - FL
+    - GA
+    - IL
+    - TX
+    - CA
+    - NC
+    - TN
+    - OH
+    - PA
+    - NJ
+    - NY
+
+  # Fleet size filters
+  min_power_units: 1
+  max_power_units: 50
+
+  # Carrier operation types
+  # A = Interstate carrier
+  # B = Intrastate Hazmat
+  # C = Intrastate Non-Hazmat
+  carrier_operation:
+    - A
+    - B
+
+  # Entity types
+  # C = Carrier
+  # B = Broker
+  # F = Freight Forwarder
+  entity_types:
+    - C
+
+  # API settings
+  max_records_per_state: 10000
+
+# Scoring Settings
+scoring:
+  base_score: 50
+  hot_threshold: 70
+  medium_threshold: 50
+
+  # Fleet size scoring (trucking)
+  fleet_sweet_spot:
+    min: 5
+    max: 20
+    points: 30
+
+  fleet_small:
+    min: 2
+    max: 4
+    points: 20
+
+  fleet_medium:
+    min: 21
+    max: 35
+    points: 15
+
+  fleet_single:
+    min: 1
+    max: 1
+    points: 5
+
+  # Contact info scoring
+  has_phone_points: 10
+  has_mc_authority_points: 10
+
+# Output Settings
+output:
+  default_format: csv  # csv or excel
+  include_hot_file: true
+  hot_threshold: 70
+
+# API Settings (optional)
+# Set these for higher rate limits
+api:
+  # Socrata app token (get one at https://data.transportation.gov)
+  # Can also be set via SOCRATA_APP_TOKEN environment variable
+  socrata_app_token: null
+
+  # Rate limiting
+  requests_per_second: 2
+  retry_attempts: 3
+  retry_backoff: 2  # Exponential backoff multiplier
