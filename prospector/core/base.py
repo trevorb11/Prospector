@@ -294,13 +294,16 @@ class IndustryProspector(ABC):
             return {"total": 0}
 
         df = self.to_dataframe()
+        
+        if df.empty or "Score" not in df.columns:
+            return {"total": 0}
 
         return {
             "total": len(df),
             "hot_count": len(df[df["Score"] >= 70]),
             "medium_count": len(df[(df["Score"] >= 50) & (df["Score"] < 70)]),
             "low_count": len(df[df["Score"] < 50]),
-            "avg_score": round(df["Score"].mean(), 1),
-            "with_phone": len(df[df["Phone"].notna() & (df["Phone"] != "")]),
+            "avg_score": round(df["Score"].mean(), 1) if len(df) > 0 else 0,
+            "with_phone": len(df[df["Phone"].notna() & (df["Phone"] != "")]) if "Phone" in df.columns else 0,
             "by_state": df["State"].value_counts().to_dict() if "State" in df.columns else {},
         }

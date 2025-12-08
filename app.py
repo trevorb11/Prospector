@@ -137,16 +137,20 @@ def run_prospector_job(job: ProspectorJob):
         df.to_csv(output_path, index=False)
         job.output_file = output_filename
 
-        # Export hot prospects
-        hot_df = df[df["Score"] >= 70]
-        if not hot_df.empty:
-            hot_filename = f"prospects_{timestamp}_HOT.csv"
-            hot_path = OUTPUT_DIR / hot_filename
-            hot_df.to_csv(hot_path, index=False)
-            job.hot_file = hot_filename
+        # Export hot prospects (only if we have data with Score column)
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"prospects_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
 
         # Get summary stats
-        job.stats = prospector.get_summary()
+        if not df.empty:
+            job.stats = prospector.get_summary()
+        else:
+            job.stats = {"total": 0, "message": "No prospects found matching criteria"}
 
         job.progress = 100
         job.progress_message = "Complete!"

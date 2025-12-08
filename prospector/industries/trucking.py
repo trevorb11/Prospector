@@ -73,42 +73,17 @@ class TruckingProspector(IndustryProspector):
     def _build_query_params(self, state: str, offset: int = 0) -> Dict[str, str]:
         """Build Socrata SoQL query parameters."""
         where_conditions = [
-            f"physical_state = '{state}'",
-            f"power_units >= {self.config['min_power_units']}",
-            f"power_units <= {self.config['max_power_units']}",
-            "operating_status = 'ACTIVE'",
+            f"phy_state='{state}'",
+            f"power_units::number>={self.config['min_power_units']}",
+            f"power_units::number<={self.config['max_power_units']}",
+            "status_code='A'",
         ]
-
-        # Add carrier operation filter if specified
-        if self.config.get("carrier_operation"):
-            ops = self.config["carrier_operation"]
-            if len(ops) == 1:
-                where_conditions.append(f"carrier_operation = '{ops[0]}'")
-            else:
-                op_list = " OR ".join([f"carrier_operation = '{op}'" for op in ops])
-                where_conditions.append(f"({op_list})")
-
-        # Add entity type filter if specified
-        if self.config.get("entity_types"):
-            types = self.config["entity_types"]
-            if len(types) == 1:
-                where_conditions.append(f"entity_type = '{types[0]}'")
-            else:
-                type_list = " OR ".join([f"entity_type = '{t}'" for t in types])
-                where_conditions.append(f"({type_list})")
 
         params = {
             "$where": " AND ".join(where_conditions),
             "$limit": str(self.config["max_records_per_state"]),
             "$offset": str(offset),
-            "$order": "power_units DESC",
-            "$select": ",".join([
-                "dot_number", "legal_name", "dba_name",
-                "physical_address", "physical_city", "physical_state", "physical_zip",
-                "mailing_address", "mailing_city", "mailing_state", "mailing_zip",
-                "telephone", "mc_mx_ff_numbers", "power_units", "drivers",
-                "mcs150_date", "carrier_operation", "entity_type", "operating_status"
-            ])
+            "$order": "power_units::number DESC",
         }
 
         # Add app token if provided
@@ -204,33 +179,31 @@ class TruckingProspector(IndustryProspector):
         # Parse drivers
         drivers = None
         try:
-            drivers = int(raw_record.get("drivers", 0) or 0)
+            drivers = int(raw_record.get("total_drivers", 0) or 0)
         except (ValueError, TypeError):
             drivers = None
 
         return ProspectRecord(
             company_name=raw_record.get("legal_name", ""),
-            dba_name=raw_record.get("dba_name") or None,
+            dba_name=None,
             industry_id=raw_record.get("dot_number"),
-            phone=self.clean_phone_number(raw_record.get("telephone")),
-            address=raw_record.get("physical_address"),
-            city=raw_record.get("physical_city"),
-            state=raw_record.get("physical_state"),
-            zip_code=raw_record.get("physical_zip"),
-            mailing_address=raw_record.get("mailing_address"),
-            mailing_city=raw_record.get("mailing_city"),
-            mailing_state=raw_record.get("mailing_state"),
-            mailing_zip=raw_record.get("mailing_zip"),
+            phone=self.clean_phone_number(raw_record.get("phone")),
+            address=raw_record.get("phy_street"),
+            city=raw_record.get("phy_city"),
+            state=raw_record.get("phy_state"),
+            zip_code=raw_record.get("phy_zip"),
+            mailing_address=raw_record.get("carrier_mailing_street"),
+            mailing_city=raw_record.get("carrier_mailing_city"),
+            mailing_state=raw_record.get("carrier_mailing_state"),
+            mailing_zip=raw_record.get("carrier_mailing_zip"),
             business_size_metric=power_units,
             business_size_label="Trucks",
             employee_count=drivers,
             industry_data={
                 "DOT Number": raw_record.get("dot_number"),
-                "MC Number": raw_record.get("mc_mx_ff_numbers") or "",
                 "Drivers": drivers,
                 "Operation Type": raw_record.get("carrier_operation"),
-                "Entity Type": raw_record.get("entity_type"),
-                "Status": raw_record.get("operating_status"),
+                "Status": "ACTIVE" if raw_record.get("status_code") == "A" else raw_record.get("status_code"),
                 "Last Updated": raw_record.get("mcs150_date"),
             },
         )
@@ -279,14 +252,14 @@ class TruckingProspector(IndustryProspector):
                 "points": 10,
                 "description": "Contact info available",
             },
-            # MC Authority (indicates for-hire carrier)
+            # Interstate carrier bonus
             {
-                "name": "has_mc_authority",
+                "name": "interstate_carrier",
                 "field": "industry_data",
                 "rule_type": "custom",
                 "points": 10,
-                "description": "For-hire carrier indicator",
-                "params": {"check_field": "MC Number"},
+                "description": "Interstate carrier (broader operations)",
+                "params": {"check_field": "Operation Type", "check_value": "A"},
             },
         ]
 
@@ -315,7 +288,23 @@ def lookup_by_dot(dot_number: str, app_token: Optional[str] = None) -> Optional[
         response = requests.get(FMCSA_CENSUS_URL, params=params, timeout=30)
         response.raise_for_status()
         data = response.json()
-        return data[0] if data else None
+        if data:
+            record = data[0]
+            return {
+                "dot_number": record.get("dot_number"),
+                "legal_name": record.get("legal_name"),
+                "phone": record.get("phone"),
+                "address": record.get("phy_street"),
+                "city": record.get("phy_city"),
+                "state": record.get("phy_state"),
+                "zip": record.get("phy_zip"),
+                "power_units": record.get("power_units"),
+                "total_drivers": record.get("total_drivers"),
+                "carrier_operation": record.get("carrier_operation"),
+                "status": "ACTIVE" if record.get("status_code") == "A" else record.get("status_code"),
+                "mcs150_date": record.get("mcs150_date"),
+            }
+        return None
     except Exception as e:
         print(f"Error looking up DOT {dot_number}: {e}")
         return None
@@ -341,7 +330,7 @@ def search_by_name(
     """
     where_clause = f"upper(legal_name) like upper('%{company_name}%')"
     if state:
-        where_clause += f" AND physical_state = '{state}'"
+        where_clause += f" AND phy_state = '{state}'"
 
     params = {
         "$where": where_clause,
@@ -354,7 +343,19 @@ def search_by_name(
     try:
         response = requests.get(FMCSA_CENSUS_URL, params=params, timeout=30)
         response.raise_for_status()
-        return response.json()
+        records = response.json()
+        return [
+            {
+                "dot_number": r.get("dot_number"),
+                "legal_name": r.get("legal_name"),
+                "phone": r.get("phone"),
+                "city": r.get("phy_city"),
+                "state": r.get("phy_state"),
+                "power_units": r.get("power_units"),
+                "total_drivers": r.get("total_drivers"),
+            }
+            for r in records
+        ]
     except Exception as e:
         print(f"Error searching for '{company_name}': {e}")
         return []
@@ -381,17 +382,17 @@ def get_carriers_by_city(
         List of carrier records
     """
     where_clause = (
-        f"upper(physical_city) = upper('{city}') AND "
-        f"physical_state = '{state}' AND "
-        f"power_units >= {min_trucks} AND "
-        f"power_units <= {max_trucks} AND "
-        f"operating_status = 'ACTIVE'"
+        f"upper(phy_city) = upper('{city}') AND "
+        f"phy_state = '{state}' AND "
+        f"power_units::number >= {min_trucks} AND "
+        f"power_units::number <= {max_trucks} AND "
+        f"status_code = 'A'"
     )
 
     params = {
         "$where": where_clause,
         "$limit": "1000",
-        "$order": "power_units DESC",
+        "$order": "power_units::number DESC",
     }
     if app_token:
         params["$$app_token"] = app_token
@@ -399,7 +400,21 @@ def get_carriers_by_city(
     try:
         response = requests.get(FMCSA_CENSUS_URL, params=params, timeout=30)
         response.raise_for_status()
-        return response.json()
+        records = response.json()
+        return [
+            {
+                "dot_number": r.get("dot_number"),
+                "legal_name": r.get("legal_name"),
+                "phone": r.get("phone"),
+                "address": r.get("phy_street"),
+                "city": r.get("phy_city"),
+                "state": r.get("phy_state"),
+                "zip": r.get("phy_zip"),
+                "power_units": r.get("power_units"),
+                "total_drivers": r.get("total_drivers"),
+            }
+            for r in records
+        ]
     except Exception as e:
         print(f"Error fetching carriers in {city}, {state}: {e}")
         return []
