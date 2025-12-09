@@ -18,6 +18,10 @@ externalPort = 80
 localPort = 43463
 externalPort = 3000
 
+[[ports]]
+localPort = 44947
+externalPort = 3001
+
 [env]
 PYTHONUNBUFFERED = "1"
 FLASK_ENV = "production"

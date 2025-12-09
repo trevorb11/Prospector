@@ -185,9 +185,10 @@ class TruckingProspector(IndustryProspector):
 
         return ProspectRecord(
             company_name=raw_record.get("legal_name", ""),
-            dba_name=None,
+            dba_name=raw_record.get("dba_name"),
             industry_id=raw_record.get("dot_number"),
             phone=self.clean_phone_number(raw_record.get("phone")),
+            email=raw_record.get("email_address"),
             address=raw_record.get("phy_street"),
             city=raw_record.get("phy_city"),
             state=raw_record.get("phy_state"),
@@ -250,7 +251,14 @@ class TruckingProspector(IndustryProspector):
                 "field": "phone",
                 "rule_type": "presence",
                 "points": 10,
-                "description": "Contact info available",
+                "description": "Phone number available",
+            },
+            {
+                "name": "has_email",
+                "field": "email",
+                "rule_type": "presence",
+                "points": 15,
+                "description": "Email address available",
             },
             # Interstate carrier bonus
             {
@@ -293,7 +301,9 @@ def lookup_by_dot(dot_number: str, app_token: Optional[str] = None) -> Optional[
             return {
                 "dot_number": record.get("dot_number"),
                 "legal_name": record.get("legal_name"),
+                "dba_name": record.get("dba_name"),
                 "phone": record.get("phone"),
+                "email": record.get("email_address"),
                 "address": record.get("phy_street"),
                 "city": record.get("phy_city"),
                 "state": record.get("phy_state"),
@@ -349,6 +359,7 @@ def search_by_name(
                 "dot_number": r.get("dot_number"),
                 "legal_name": r.get("legal_name"),
                 "phone": r.get("phone"),
+                "email": r.get("email_address"),
                 "city": r.get("phy_city"),
                 "state": r.get("phy_state"),
                 "power_units": r.get("power_units"),
@@ -406,6 +417,7 @@ def get_carriers_by_city(
                 "dot_number": r.get("dot_number"),
                 "legal_name": r.get("legal_name"),
                 "phone": r.get("phone"),
+                "email": r.get("email_address"),
                 "address": r.get("phy_street"),
                 "city": r.get("phy_city"),
                 "state": r.get("phy_state"),
