@@ -7,7 +7,7 @@ different data sources.
 """
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 import pandas as pd
@@ -56,6 +56,12 @@ class ProspectRecord:
     prospect_score: int = 0
     score_breakdown: Dict[str, int] = field(default_factory=dict)
 
+    # Loan triggers (enrichment data)
+    loan_triggers: List[Dict[str, Any]] = field(default_factory=list)
+    trigger_score_boost: int = 0
+    trigger_priority: Optional[str] = None  # "high", "medium", "low"
+    trigger_summary: Optional[str] = None
+
     # Metadata
     source: Optional[str] = None
     retrieved_at: datetime = field(default_factory=datetime.now)
@@ -64,6 +70,8 @@ class ProspectRecord:
         """Convert to dictionary for export."""
         base_dict = {
             "Score": self.prospect_score,
+            "Trigger Priority": self.trigger_priority or "",
+            "Trigger Summary": self.trigger_summary or "",
             "Company Name": self.company_name,
             "DBA Name": self.dba_name or "",
             "Phone": self.phone or "",
@@ -83,6 +91,17 @@ class ProspectRecord:
         # Add industry-specific fields
         for key, value in self.industry_data.items():
             base_dict[key] = value
+
+        # Add loan trigger details as a formatted string
+        if self.loan_triggers:
+            trigger_names = [t.get("name", "") for t in self.loan_triggers[:3]]
+            base_dict["Loan Triggers"] = "; ".join(trigger_names)
+            base_dict["Trigger Count"] = len(self.loan_triggers)
+            base_dict["Trigger Score Boost"] = self.trigger_score_boost
+        else:
+            base_dict["Loan Triggers"] = ""
+            base_dict["Trigger Count"] = 0
+            base_dict["Trigger Score Boost"] = 0
 
         return base_dict
 
@@ -154,26 +173,53 @@ class IndustryProspector(ABC):
 
     def enrich_record(self, record: ProspectRecord) -> ProspectRecord:
         """
-        Optionally enrich a record with additional data.
+        Enrich a record with loan trigger detection.
 
-        Override this to add data from additional sources.
-        Default returns the record unchanged.
+        This method detects signals that indicate the prospect may be
+        interested in financing, such as equipment lifecycle timing,
+        business growth signals, and seasonality factors.
+
+        Override this in subclasses to add industry-specific enrichment.
 
         Args:
             record: The prospect record to enrich
 
         Returns:
-            Enriched prospect record
+            Enriched prospect record with loan triggers
         """
+        from .loan_triggers import get_trigger_detector, format_triggers_for_display
+
+        # Get the appropriate detector for this industry
+        detector = get_trigger_detector(self.get_industry_name())
+
+        # Convert record to dict format for trigger detection
+        record_dict = {
+            "years_in_business": record.years_in_business,
+            "industry_data": record.industry_data,
+            "state": record.state,
+            "business_size_metric": record.business_size_metric,
+        }
+
+        # Detect triggers
+        triggers = detector.detect_triggers(record_dict)
+
+        # Format and apply triggers to record
+        trigger_data = format_triggers_for_display(triggers)
+
+        record.loan_triggers = trigger_data["triggers"]
+        record.trigger_score_boost = trigger_data["score_boost"]
+        record.trigger_priority = trigger_data["priority"]
+        record.trigger_summary = trigger_data["summary"]
+
         return record
 
-    def run(self, score: bool = True, enrich: bool = False) -> List[ProspectRecord]:
+    def run(self, score: bool = True, enrich: bool = True) -> List[ProspectRecord]:
         """
         Execute the full prospect finding pipeline.
 
         Args:
             score: Whether to score the prospects
-            enrich: Whether to enrich with additional data
+            enrich: Whether to enrich with loan trigger detection (default: True)
 
         Returns:
             List of ProspectRecord objects
@@ -195,15 +241,30 @@ class IndustryProspector(ABC):
                 print(f"Warning: Failed to parse record: {e}")
                 continue
 
-        # Optionally enrich
-        if enrich:
-            self._prospects = [self.enrich_record(r) for r in self._prospects]
-
-        # Score prospects
+        # Score prospects first (base scoring)
         if score:
             scoring_engine = ScoringEngine(self.get_scoring_rules())
             self._prospects = [scoring_engine.score(r) for r in self._prospects]
-            # Sort by score descending
+
+        # Enrich with loan trigger detection
+        if enrich:
+            print("\nEnriching prospects with loan trigger detection...")
+            self._prospects = [self.enrich_record(r) for r in self._prospects]
+
+            # Apply trigger score boost to final score
+            for record in self._prospects:
+                if record.trigger_score_boost > 0:
+                    record.prospect_score += record.trigger_score_boost
+                    record.score_breakdown["loan_triggers"] = record.trigger_score_boost
+
+            # Count triggers by priority
+            high_priority = sum(1 for r in self._prospects if r.trigger_priority == "high")
+            medium_priority = sum(1 for r in self._prospects if r.trigger_priority == "medium")
+            print(f"  High-priority triggers: {high_priority}")
+            print(f"  Medium-priority triggers: {medium_priority}")
+
+        # Sort by score descending (after trigger boost applied)
+        if score:
             self._prospects.sort(key=lambda x: x.prospect_score, reverse=True)
 
         return self._prospects

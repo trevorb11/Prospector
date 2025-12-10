@@ -68,6 +68,43 @@ class ProspectorJob:
         }
 
 
+def enrich_prospects_with_triggers(prospects, prospector, job):
+    """
+    Helper function to enrich prospects with loan trigger detection.
+
+    Args:
+        prospects: List of ProspectRecord objects
+        prospector: The IndustryProspector instance
+        job: The ProspectorJob for progress updates
+
+    Returns:
+        Enriched prospects list with updated scores
+    """
+    job.progress_message = "Detecting loan triggers..."
+
+    # Enrich each prospect with loan triggers
+    enriched = []
+    for record in prospects:
+        try:
+            enriched_record = prospector.enrich_record(record)
+            # Apply trigger score boost to final score
+            if enriched_record.trigger_score_boost > 0:
+                enriched_record.prospect_score += enriched_record.trigger_score_boost
+                enriched_record.score_breakdown["loan_triggers"] = enriched_record.trigger_score_boost
+            enriched.append(enriched_record)
+        except Exception:
+            enriched.append(record)  # Keep original if enrichment fails
+
+    # Re-sort by updated score
+    enriched.sort(key=lambda x: x.prospect_score, reverse=True)
+
+    # Count triggers for stats
+    high_priority = sum(1 for r in enriched if r.trigger_priority == "high")
+    medium_priority = sum(1 for r in enriched if r.trigger_priority == "medium")
+
+    return enriched, {"high_priority_triggers": high_priority, "medium_priority_triggers": medium_priority}
+
+
 def run_prospector_job(job: ProspectorJob):
     """Run the prospector in a background thread."""
     try:
@@ -94,14 +131,14 @@ def run_prospector_job(job: ProspectorJob):
         total_states = len(states)
 
         for i, state in enumerate(states):
-            job.progress = int((i / total_states) * 80)
+            job.progress = int((i / total_states) * 70)
             job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
 
             state_records = prospector._fetch_state_data(state)
             all_records.extend(state_records)
             time.sleep(0.5)  # Rate limiting
 
-        job.progress = 80
+        job.progress = 70
         job.progress_message = f"Processing {len(all_records)} records..."
 
         # Process records
@@ -115,14 +152,21 @@ def run_prospector_job(job: ProspectorJob):
                 continue
 
         # Score prospects
-        job.progress = 90
+        job.progress = 80
         job.progress_message = "Scoring prospects..."
 
         from prospector.core.scoring import ScoringEngine
         scoring_engine = ScoringEngine(prospector.get_scoring_rules())
         prospects = [scoring_engine.score(r) for r in prospects]
-        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
 
+        # Enrich with loan triggers (enabled by default)
+        job.progress = 88
+        if job.config.get("enrich", True):
+            prospects, trigger_stats = enrich_prospects_with_triggers(prospects, prospector, job)
+        else:
+            trigger_stats = {}
+
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         prospector._prospects = prospects
 
         # Export to CSV
@@ -149,6 +193,7 @@ def run_prospector_job(job: ProspectorJob):
         # Get summary stats
         if not df.empty:
             job.stats = prospector.get_summary()
+            job.stats.update(trigger_stats)
         else:
             job.stats = {"total": 0, "message": "No prospects found matching criteria"}
 
@@ -296,14 +341,14 @@ def run_healthcare_job(job: ProspectorJob):
         total_states = len(states)
 
         for i, state in enumerate(states):
-            job.progress = int((i / total_states) * 80)
+            job.progress = int((i / total_states) * 70)
             job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
 
             state_records = prospector._fetch_state_data(state)
             all_records.extend(state_records)
             time.sleep(0.3)
 
-        job.progress = 80
+        job.progress = 70
         job.progress_message = f"Processing {len(all_records)} records..."
 
         # Process records
@@ -317,14 +362,21 @@ def run_healthcare_job(job: ProspectorJob):
                 continue
 
         # Score prospects
-        job.progress = 90
+        job.progress = 80
         job.progress_message = "Scoring prospects..."
 
         from prospector.core.scoring import ScoringEngine
         scoring_engine = ScoringEngine(prospector.get_scoring_rules())
         prospects = [scoring_engine.score(r) for r in prospects]
-        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
 
+        # Enrich with loan triggers
+        job.progress = 88
+        if job.config.get("enrich", True):
+            prospects, trigger_stats = enrich_prospects_with_triggers(prospects, prospector, job)
+        else:
+            trigger_stats = {}
+
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         prospector._prospects = prospects
 
         # Export to CSV
@@ -349,6 +401,7 @@ def run_healthcare_job(job: ProspectorJob):
 
         if not df.empty:
             job.stats = prospector.get_summary()
+            job.stats.update(trigger_stats)
         else:
             job.stats = {"total": 0, "message": "No prospects found"}
 
@@ -385,14 +438,14 @@ def run_construction_job(job: ProspectorJob):
         total_states = len(states)
 
         for i, state in enumerate(states):
-            job.progress = int((i / total_states) * 80)
+            job.progress = int((i / total_states) * 70)
             job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
 
             state_records = prospector._fetch_state_data(state)
             all_records.extend(state_records)
             time.sleep(0.3)
 
-        job.progress = 80
+        job.progress = 70
         job.progress_message = f"Processing {len(all_records)} records..."
 
         # Process records
@@ -406,14 +459,21 @@ def run_construction_job(job: ProspectorJob):
                 continue
 
         # Score prospects
-        job.progress = 90
+        job.progress = 80
         job.progress_message = "Scoring prospects..."
 
         from prospector.core.scoring import ScoringEngine
         scoring_engine = ScoringEngine(prospector.get_scoring_rules())
         prospects = [scoring_engine.score(r) for r in prospects]
-        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
 
+        # Enrich with loan triggers
+        job.progress = 88
+        if job.config.get("enrich", True):
+            prospects, trigger_stats = enrich_prospects_with_triggers(prospects, prospector, job)
+        else:
+            trigger_stats = {}
+
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         prospector._prospects = prospects
 
         # Export to CSV
@@ -438,6 +498,7 @@ def run_construction_job(job: ProspectorJob):
 
         if not df.empty:
             job.stats = prospector.get_summary()
+            job.stats.update(trigger_stats)
         else:
             job.stats = {"total": 0, "message": "No prospects found"}
 
@@ -477,8 +538,9 @@ def run_aviation_job(job: ProspectorJob):
         job.progress = 10
         job.progress_message = "Downloading FAA aircraft database..."
 
-        # Run the prospector
-        prospects = prospector.run(score=True)
+        # Run the prospector (with enrichment enabled by default)
+        enrich = job.config.get("enrich", True)
+        prospects = prospector.run(score=True, enrich=enrich)
 
         job.progress = 95
         job.progress_message = "Generating output files..."
@@ -502,6 +564,11 @@ def run_aviation_job(job: ProspectorJob):
 
         if not df.empty:
             job.stats = prospector.get_summary()
+            # Add trigger stats
+            high_priority = sum(1 for p in prospects if p.trigger_priority == "high")
+            medium_priority = sum(1 for p in prospects if p.trigger_priority == "medium")
+            job.stats["high_priority_triggers"] = high_priority
+            job.stats["medium_priority_triggers"] = medium_priority
         else:
             job.stats = {"total": 0, "message": "No prospects found"}
 

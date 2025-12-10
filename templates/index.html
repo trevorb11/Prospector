@@ -170,6 +170,32 @@
             color: #333;
         }
 
+        .badge-trigger-high {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+        }
+
+        .badge-trigger-medium {
+            background: linear-gradient(135deg, #f39c12, #d68910);
+            color: white;
+        }
+
+        .trigger-stat {
+            border-left: 3px solid #e74c3c;
+        }
+
+        .trigger-info {
+            background: linear-gradient(135deg, #fff5f5, #fff);
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+        }
+
+        .trigger-info i {
+            color: #e74c3c;
+        }
+
         .result-card {
             background: white;
             border-radius: 10px;
@@ -382,29 +408,47 @@
                         </div>
 
                         <div id="truckingResults" style="display: none;">
+                            <div class="trigger-info" id="truckingTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="truckingTriggerSummary"></span>
+                            </div>
+
                             <div class="row mb-4">
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-primary" id="truckingTotalCount">0</h2>
                                         <p>Total</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-danger" id="truckingHotCount">0</h2>
                                         <p>Hot (70+)</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-warning" id="truckingMediumCount">0</h2>
                                         <p>Medium</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-success" id="truckingPhoneCount">0</h2>
                                         <p>With Phone</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="truckingHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="truckingMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
                                     </div>
                                 </div>
                             </div>
@@ -492,29 +536,47 @@
                         </div>
 
                         <div id="healthcareResults" style="display: none;">
+                            <div class="trigger-info" id="healthcareTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="healthcareTriggerSummary"></span>
+                            </div>
+
                             <div class="row mb-4">
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 style="color: var(--healthcare-color);" id="healthcareTotalCount">0</h2>
                                         <p>Total</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-danger" id="healthcareHotCount">0</h2>
                                         <p>Hot (70+)</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-warning" id="healthcareMediumCount">0</h2>
                                         <p>Medium</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-success" id="healthcarePhoneCount">0</h2>
                                         <p>With Phone</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="healthcareHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="healthcareMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
                                     </div>
                                 </div>
                             </div>
@@ -593,29 +655,47 @@
                         </div>
 
                         <div id="constructionResults" style="display: none;">
+                            <div class="trigger-info" id="constructionTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="constructionTriggerSummary"></span>
+                            </div>
+
                             <div class="row mb-4">
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 style="color: var(--construction-color);" id="constructionTotalCount">0</h2>
                                         <p>Total</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-danger" id="constructionHotCount">0</h2>
                                         <p>Hot (70+)</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-warning" id="constructionMediumCount">0</h2>
                                         <p>Medium</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-success" id="constructionPhoneCount">0</h2>
                                         <p>With Phone</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="constructionHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="constructionMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
                                     </div>
                                 </div>
                             </div>
@@ -723,29 +803,47 @@
                         </div>
 
                         <div id="aviationResults" style="display: none;">
+                            <div class="trigger-info" id="aviationTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="aviationTriggerSummary"></span>
+                            </div>
+
                             <div class="row mb-4">
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 style="color: var(--aviation-color);" id="aviationTotalCount">0</h2>
                                         <p>Total</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-danger" id="aviationHotCount">0</h2>
                                         <p>Hot (70+)</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-warning" id="aviationMediumCount">0</h2>
                                         <p>Medium</p>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <div class="card stat-card">
                                         <h2 class="text-info" id="aviationFleetCount">0</h2>
                                         <p>Fleet (2+)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="aviationHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="aviationMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
                                     </div>
                                 </div>
                             </div>
@@ -972,6 +1070,23 @@
                 document.getElementById(elementId).textContent = formatNumber(job.stats[statKey] || 0);
             }
 
+            // Update trigger stats if available
+            if (config.triggerInfoId) {
+                const highTriggers = job.stats.high_priority_triggers || 0;
+                const medTriggers = job.stats.medium_priority_triggers || 0;
+
+                document.getElementById(config.highTriggersId).textContent = formatNumber(highTriggers);
+                document.getElementById(config.medTriggersId).textContent = formatNumber(medTriggers);
+
+                // Show trigger info banner if there are high priority triggers
+                if (highTriggers > 0) {
+                    const triggerInfo = document.getElementById(config.triggerInfoId);
+                    triggerInfo.style.display = 'block';
+                    document.getElementById(config.triggerSummaryId).textContent =
+                        ` ${highTriggers} prospects with high-priority financing signals detected. These are most likely to need a business loan.`;
+                }
+            }
+
             // Download buttons
             let buttons = '';
             if (job.output_file) {
@@ -1005,6 +1120,10 @@
             statesInputId: 'truckingStates',
             downloadButtonsId: 'truckingDownloadButtons',
             buttonText: '<i class="bi bi-play-fill me-1"></i> Find Trucking Prospects',
+            triggerInfoId: 'truckingTriggerInfo',
+            triggerSummaryId: 'truckingTriggerSummary',
+            highTriggersId: 'truckingHighTriggers',
+            medTriggersId: 'truckingMedTriggers',
             statsMapping: {
                 'truckingTotalCount': 'total',
                 'truckingHotCount': 'hot_count',
@@ -1031,6 +1150,10 @@
             statesInputId: 'healthcareStates',
             downloadButtonsId: 'healthcareDownloadButtons',
             buttonText: '<i class="bi bi-play-fill me-1"></i> Find Healthcare Prospects',
+            triggerInfoId: 'healthcareTriggerInfo',
+            triggerSummaryId: 'healthcareTriggerSummary',
+            highTriggersId: 'healthcareHighTriggers',
+            medTriggersId: 'healthcareMedTriggers',
             statsMapping: {
                 'healthcareTotalCount': 'total',
                 'healthcareHotCount': 'hot_count',
@@ -1056,6 +1179,10 @@
             statesInputId: 'constructionStates',
             downloadButtonsId: 'constructionDownloadButtons',
             buttonText: '<i class="bi bi-play-fill me-1"></i> Find Construction Prospects',
+            triggerInfoId: 'constructionTriggerInfo',
+            triggerSummaryId: 'constructionTriggerSummary',
+            highTriggersId: 'constructionHighTriggers',
+            medTriggersId: 'constructionMedTriggers',
             statsMapping: {
                 'constructionTotalCount': 'total',
                 'constructionHotCount': 'hot_count',
@@ -1080,6 +1207,10 @@
             statesInputId: 'aviationStates',
             downloadButtonsId: 'aviationDownloadButtons',
             buttonText: '<i class="bi bi-play-fill me-1"></i> Find Aviation Prospects',
+            triggerInfoId: 'aviationTriggerInfo',
+            triggerSummaryId: 'aviationTriggerSummary',
+            highTriggersId: 'aviationHighTriggers',
+            medTriggersId: 'aviationMedTriggers',
             statsMapping: {
                 'aviationTotalCount': 'total',
                 'aviationHotCount': 'hot_count',
