@@ -272,6 +272,281 @@ def run_city_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_healthcare_job(job: ProspectorJob):
+    """Run a healthcare prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting healthcare prospect search..."
+
+        from prospector.industries.healthcare import HealthcareProspector
+
+        config = {
+            "target_states": job.config.get("states", ["FL"]),
+            "organization_only": job.config.get("organizations_only", True),
+            "entity_types": ["2"] if job.config.get("organizations_only", True) else ["1", "2"],
+            "limit_per_state": job.config.get("limit_per_state", 500),
+        }
+
+        prospector = HealthcareProspector(config)
+
+        # Fetch with progress updates
+        all_records = []
+        states = config["target_states"]
+        total_states = len(states)
+
+        for i, state in enumerate(states):
+            job.progress = int((i / total_states) * 80)
+            job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
+
+            state_records = prospector._fetch_state_data(state)
+            all_records.extend(state_records)
+            time.sleep(0.3)
+
+        job.progress = 80
+        job.progress_message = f"Processing {len(all_records)} records..."
+
+        # Process records
+        prospects = []
+        for raw in all_records:
+            try:
+                record = prospector.parse_record(raw)
+                record.source = prospector.get_industry_name()
+                prospects.append(record)
+            except Exception:
+                continue
+
+        # Score prospects
+        job.progress = 90
+        job.progress_message = "Scoring prospects..."
+
+        from prospector.core.scoring import ScoringEngine
+        scoring_engine = ScoringEngine(prospector.get_scoring_rules())
+        prospects = [scoring_engine.score(r) for r in prospects]
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+
+        prospector._prospects = prospects
+
+        # Export to CSV
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"healthcare_prospects_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"healthcare_prospects_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_construction_job(job: ProspectorJob):
+    """Run a construction prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting construction prospect search..."
+
+        from prospector.industries.construction import ConstructionProspector
+
+        config = {
+            "target_states": job.config.get("states", ["FL"]),
+            "limit_per_state": job.config.get("limit_per_state", 500),
+        }
+
+        prospector = ConstructionProspector(config)
+
+        # Fetch with progress updates
+        all_records = []
+        states = config["target_states"]
+        total_states = len(states)
+
+        for i, state in enumerate(states):
+            job.progress = int((i / total_states) * 80)
+            job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
+
+            state_records = prospector._fetch_state_data(state)
+            all_records.extend(state_records)
+            time.sleep(0.3)
+
+        job.progress = 80
+        job.progress_message = f"Processing {len(all_records)} records..."
+
+        # Process records
+        prospects = []
+        for raw in all_records:
+            try:
+                record = prospector.parse_record(raw)
+                record.source = prospector.get_industry_name()
+                prospects.append(record)
+            except Exception:
+                continue
+
+        # Score prospects
+        job.progress = 90
+        job.progress_message = "Scoring prospects..."
+
+        from prospector.core.scoring import ScoringEngine
+        scoring_engine = ScoringEngine(prospector.get_scoring_rules())
+        prospects = [scoring_engine.score(r) for r in prospects]
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+
+        prospector._prospects = prospects
+
+        # Export to CSV
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"construction_prospects_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"construction_prospects_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_aviation_job(job: ProspectorJob):
+    """Run an aviation prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting aviation prospect search..."
+
+        from prospector.industries.aviation import AviationProspector
+
+        config = {
+            "target_states": job.config.get("states", ["FL"]),
+            "min_aircraft": job.config.get("min_aircraft", 1),
+            "max_aircraft": job.config.get("max_aircraft", 100),
+            "owner_types": job.config.get("owner_types", ["3", "7", "2"]),
+            "limit_per_state": job.config.get("limit_per_state", 500),
+        }
+
+        if job.config.get("turbine_only"):
+            config["engine_types"] = ["2", "3", "4", "5"]
+
+        prospector = AviationProspector(config)
+
+        job.progress = 10
+        job.progress_message = "Downloading FAA aircraft database..."
+
+        # Run the prospector
+        prospects = prospector.run(score=True)
+
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        # Export to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"aviation_prospects_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"aviation_prospects_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_npi_lookup_job(job: ProspectorJob):
+    """Run an NPI lookup job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Looking up provider..."
+
+        from prospector.industries.healthcare import lookup_by_npi
+
+        npi_number = job.config.get("npi_number")
+        result = lookup_by_npi(npi_number)
+
+        if result:
+            job.result = result
+            job.status = "completed"
+            job.progress = 100
+            job.progress_message = "Found!"
+        else:
+            job.status = "completed"
+            job.progress = 100
+            job.progress_message = "No provider found"
+            job.result = None
+
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 # Routes
 
 @app.route("/")
@@ -374,6 +649,110 @@ def start_city_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_city_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/healthcare", methods=["POST"])
+def start_healthcare_search():
+    """Start a new healthcare prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "organizations_only": data.get("organizations_only", True),
+        "limit_per_state": int(data.get("limit_per_state", 500)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_healthcare_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/construction", methods=["POST"])
+def start_construction_search():
+    """Start a new construction prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "limit_per_state": int(data.get("limit_per_state", 500)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_construction_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/aviation", methods=["POST"])
+def start_aviation_search():
+    """Start a new aviation prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "min_aircraft": int(data.get("min_aircraft", 1)),
+        "max_aircraft": int(data.get("max_aircraft", 100)),
+        "businesses_only": data.get("businesses_only", True),
+        "owner_types": ["3", "7", "2"] if data.get("businesses_only", True) else ["1", "2", "3", "4", "7"],
+        "turbine_only": data.get("turbine_only", False),
+        "limit_per_state": int(data.get("limit_per_state", 500)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_aviation_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/npi-lookup", methods=["POST"])
+def start_npi_lookup():
+    """Start an NPI lookup."""
+    data = request.json or {}
+    npi_number = data.get("npi_number", "").strip()
+
+    if not npi_number:
+        return jsonify({"error": "Please provide an NPI number"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {"npi_number": npi_number})
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_npi_lookup_job, args=(job,))
     thread.daemon = True
     thread.start()
 
