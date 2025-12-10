@@ -808,6 +808,164 @@ def list_files():
     return jsonify(files)
 
 
+@app.route("/api/match", methods=["POST"])
+def match_data():
+    """Match uploaded file against prospect data."""
+    import pandas as pd
+    from difflib import SequenceMatcher
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    prospect_file = request.form.get('prospect_file', '')
+    name_column = request.form.get('name_column', '')
+    match_threshold = float(request.form.get('threshold', 0.8))
+
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not prospect_file:
+        return jsonify({"error": "No prospect file selected"}), 400
+
+    safe_prospect_file = Path(prospect_file).name
+    prospect_path = OUTPUT_DIR / safe_prospect_file
+    if not prospect_path.exists():
+        return jsonify({"error": "Prospect file not found"}), 404
+
+    try:
+        if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
+            uploaded_df = pd.read_excel(file)
+        else:
+            uploaded_df = pd.read_csv(file)
+
+        prospect_df = pd.read_csv(prospect_path)
+
+        if not name_column or name_column not in uploaded_df.columns:
+            possible_cols = [c for c in uploaded_df.columns if 'name' in c.lower() or 'company' in c.lower() or 'business' in c.lower()]
+            if possible_cols:
+                name_column = possible_cols[0]
+            else:
+                name_column = uploaded_df.columns[0]
+
+        def normalize_name(name):
+            if pd.isna(name):
+                return ""
+            name = str(name).upper().strip()
+            for suffix in [' LLC', ' INC', ' CORP', ' CO', ' LTD', ' LP', ' L.L.C.', ' L.L.C', ' INC.', ' CORPORATION', ' COMPANY', ' TRUCKING', ' TRANSPORT', ' LOGISTICS', ' FREIGHT', ' SERVICES']:
+                name = name.replace(suffix, '')
+            return ' '.join(name.split())
+
+        def match_score(name1, name2):
+            n1, n2 = normalize_name(name1), normalize_name(name2)
+            if not n1 or not n2:
+                return 0.0
+            return SequenceMatcher(None, n1, n2).ratio()
+
+        prospect_name_col = 'Company Name' if 'Company Name' in prospect_df.columns else prospect_df.columns[0]
+
+        prospect_df['_normalized_name'] = prospect_df[prospect_name_col].apply(normalize_name)
+        prospect_records = prospect_df.to_dict('records')
+        
+        normalized_lookup = {}
+        for i, rec in enumerate(prospect_records):
+            norm = rec['_normalized_name']
+            if norm:
+                first_word = norm.split()[0] if norm.split() else ''
+                if first_word not in normalized_lookup:
+                    normalized_lookup[first_word] = []
+                normalized_lookup[first_word].append((i, norm, rec))
+
+        matches = []
+        unmatched = []
+
+        for idx, row in uploaded_df.iterrows():
+            uploaded_name = row[name_column]
+            uploaded_norm = normalize_name(uploaded_name)
+            if not uploaded_norm:
+                unmatched.append(row.to_dict())
+                continue
+                
+            best_match = None
+            best_score = 0
+            
+            first_word = uploaded_norm.split()[0] if uploaded_norm.split() else ''
+            candidates = normalized_lookup.get(first_word, [])
+            
+            if not candidates:
+                for key in normalized_lookup:
+                    candidates.extend(normalized_lookup[key][:50])
+                candidates = candidates[:200]
+            
+            for pidx, pnorm, prec in candidates:
+                score = SequenceMatcher(None, uploaded_norm, pnorm).ratio()
+                if score > best_score:
+                    best_score = score
+                    best_match = prec
+
+            if best_score >= match_threshold and best_match is not None:
+                match_record = row.to_dict()
+                for col in prospect_df.columns:
+                    if col != '_normalized_name':
+                        match_record[f"PROSPECT_{col}"] = best_match[col]
+                match_record['MATCH_SCORE'] = round(best_score * 100, 1)
+                matches.append(match_record)
+            else:
+                unmatched.append(row.to_dict())
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        matched_filename = f"matched_data_{timestamp}.csv"
+        matched_path = OUTPUT_DIR / matched_filename
+
+        if matches:
+            matched_df = pd.DataFrame(matches)
+            matched_df.to_csv(matched_path, index=False)
+
+        return jsonify({
+            "success": True,
+            "matched_count": len(matches),
+            "unmatched_count": len(unmatched),
+            "total_uploaded": len(uploaded_df),
+            "total_prospects": len(prospect_df),
+            "output_file": matched_filename if matches else None,
+            "name_column_used": name_column,
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/file-columns", methods=["POST"])
+def get_file_columns():
+    """Get column names from uploaded file for preview."""
+    import pandas as pd
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
+            df = pd.read_excel(file, nrows=5)
+        else:
+            df = pd.read_csv(file, nrows=5)
+
+        name_cols = [c for c in df.columns if 'name' in c.lower() or 'company' in c.lower() or 'business' in c.lower()]
+        suggested = name_cols[0] if name_cols else df.columns[0]
+
+        return jsonify({
+            "columns": list(df.columns),
+            "suggested_name_column": suggested,
+            "row_count": len(df),
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/health")
 def health_check():
     """Health check endpoint."""

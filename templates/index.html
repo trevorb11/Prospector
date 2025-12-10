@@ -229,6 +229,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="match-tab" data-bs-toggle="pill" data-bs-target="#match" type="button">
+                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Match Data
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
                     <i class="bi bi-folder me-1"></i> Downloads
                 </button>
@@ -468,6 +473,88 @@
                                 </form>
 
                                 <div id="cityResults"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Match Data Tab -->
+            <div class="tab-pane fade" id="match" role="tabpanel">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-file-earmark-arrow-up me-2"></i>Match Your Data Against Prospects
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-4">
+                                    Upload your Excel or CSV file to match against a prospect list. The system will find 
+                                    matching businesses by name and combine all data into one file.
+                                </p>
+
+                                <form id="matchForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">1. Select Prospect File to Match Against</label>
+                                        <select class="form-select" id="matchProspectFile" required>
+                                            <option value="">Loading files...</option>
+                                        </select>
+                                        <small class="text-muted">Select a prospect file you've previously generated</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">2. Upload Your Data File</label>
+                                        <input type="file" class="form-control" id="matchFile" 
+                                               accept=".csv,.xlsx,.xls" required>
+                                        <small class="text-muted">CSV or Excel file with a business/company name column</small>
+                                    </div>
+
+                                    <div class="mb-3" id="columnSelectArea" style="display: none;">
+                                        <label class="form-label fw-semibold">3. Select Name Column</label>
+                                        <select class="form-select" id="matchNameColumn">
+                                        </select>
+                                        <small class="text-muted">Which column contains the business/company name?</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Match Threshold</label>
+                                        <select class="form-select" id="matchThreshold">
+                                            <option value="0.9">Strict (90%+ match)</option>
+                                            <option value="0.8" selected>Standard (80%+ match)</option>
+                                            <option value="0.7">Relaxed (70%+ match)</option>
+                                            <option value="0.6">Loose (60%+ match)</option>
+                                        </select>
+                                        <small class="text-muted">How similar should names be to count as a match?</small>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary" id="matchBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Match Data
+                                    </button>
+                                </form>
+
+                                <div id="matchProgress" style="display: none;" class="mt-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                        <span>Matching data, please wait...</span>
+                                    </div>
+                                </div>
+
+                                <div id="matchResults" style="display: none;" class="mt-4">
+                                    <div class="alert alert-success" id="matchSuccess">
+                                        <h5><i class="bi bi-check-circle me-2"></i>Matching Complete!</h5>
+                                        <div id="matchStats"></div>
+                                    </div>
+                                    <a href="#" id="matchDownload" class="btn btn-success">
+                                        <i class="bi bi-download me-1"></i> Download Matched Data
+                                    </a>
+                                </div>
+
+                                <div id="matchError" style="display: none;" class="mt-4">
+                                    <div class="alert alert-danger">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <span id="matchErrorText"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -890,8 +977,122 @@
         // Load files when switching to files tab
         document.getElementById('files-tab').addEventListener('click', loadFiles);
 
+        // Load files for match tab
+        async function loadMatchFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+                const select = document.getElementById('matchProspectFile');
+                select.innerHTML = '<option value="">Select a prospect file...</option>';
+                
+                files.forEach(f => {
+                    if (f.name.includes('prospects') || f.name.includes('carriers')) {
+                        select.innerHTML += `<option value="${f.name}">${f.name}</option>`;
+                    }
+                });
+
+                if (select.options.length === 1) {
+                    files.forEach(f => {
+                        select.innerHTML += `<option value="${f.name}">${f.name}</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading files for matching:', error);
+            }
+        }
+
+        document.getElementById('match-tab').addEventListener('click', loadMatchFiles);
+
+        document.getElementById('matchFile').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/file-columns', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.columns) {
+                    const select = document.getElementById('matchNameColumn');
+                    select.innerHTML = '';
+                    data.columns.forEach(col => {
+                        const selected = col === data.suggested_name_column ? 'selected' : '';
+                        select.innerHTML += `<option value="${col}" ${selected}>${col}</option>`;
+                    });
+                    document.getElementById('columnSelectArea').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error getting columns:', error);
+            }
+        });
+
+        document.getElementById('matchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const file = document.getElementById('matchFile').files[0];
+            const prospectFile = document.getElementById('matchProspectFile').value;
+            const nameColumn = document.getElementById('matchNameColumn').value;
+            const threshold = document.getElementById('matchThreshold').value;
+
+            if (!file || !prospectFile) {
+                alert('Please select both a file to upload and a prospect file to match against.');
+                return;
+            }
+
+            document.getElementById('matchBtn').disabled = true;
+            document.getElementById('matchProgress').style.display = 'block';
+            document.getElementById('matchResults').style.display = 'none';
+            document.getElementById('matchError').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('prospect_file', prospectFile);
+            formData.append('name_column', nameColumn);
+            formData.append('threshold', threshold);
+
+            try {
+                const response = await fetch('/api/match', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                document.getElementById('matchBtn').disabled = false;
+                document.getElementById('matchProgress').style.display = 'none';
+
+                if (result.error) {
+                    document.getElementById('matchError').style.display = 'block';
+                    document.getElementById('matchErrorText').textContent = result.error;
+                } else {
+                    document.getElementById('matchResults').style.display = 'block';
+                    document.getElementById('matchStats').innerHTML = `
+                        <p><strong>Matches found:</strong> ${result.matched_count} of ${result.total_uploaded} uploaded records</p>
+                        <p><strong>Unmatched:</strong> ${result.unmatched_count} records</p>
+                        <p><strong>Name column used:</strong> ${result.name_column_used}</p>
+                    `;
+                    if (result.output_file) {
+                        document.getElementById('matchDownload').href = `/api/download/${result.output_file}`;
+                        document.getElementById('matchDownload').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('matchDownload').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                document.getElementById('matchBtn').disabled = false;
+                document.getElementById('matchProgress').style.display = 'none';
+                document.getElementById('matchError').style.display = 'block';
+                document.getElementById('matchErrorText').textContent = error.message;
+            }
+        });
+
         // Initial load
         loadFiles();
+        loadMatchFiles();
     </script>
 </body>
 </html>
