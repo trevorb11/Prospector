@@ -18,6 +18,8 @@
             --healthcare-color: #20c997;
             --construction-color: #fd7e14;
             --aviation-color: #6f42c1;
+            --auto-dealers-color: #e63946;
+            --restaurants-color: #e9c46a;
         }
 
         body {
@@ -103,6 +105,28 @@
             color: white;
         }
 
+        .btn-auto-dealers {
+            background: linear-gradient(135deg, var(--auto-dealers-color), #c5303c);
+            border: none;
+            color: white;
+        }
+
+        .btn-auto-dealers:hover {
+            background: linear-gradient(135deg, #c5303c, #a82835);
+            color: white;
+        }
+
+        .btn-restaurants {
+            background: linear-gradient(135deg, var(--restaurants-color), #d4a844);
+            border: none;
+            color: #333;
+        }
+
+        .btn-restaurants:hover {
+            background: linear-gradient(135deg, #d4a844, #b8923a);
+            color: #333;
+        }
+
         .form-control, .form-select {
             border-radius: 8px;
             padding: 10px 14px;
@@ -137,6 +161,14 @@
             background: linear-gradient(90deg, var(--aviation-color), #9775fa);
         }
 
+        .progress-bar.auto-dealers {
+            background: linear-gradient(90deg, var(--auto-dealers-color), #f07178);
+        }
+
+        .progress-bar.restaurants {
+            background: linear-gradient(90deg, var(--restaurants-color), #f4d58d);
+        }
+
         .nav-pills .nav-link {
             border-radius: 8px;
             padding: 10px 16px;
@@ -159,6 +191,15 @@
 
         .nav-pills .nav-link.active.aviation-tab {
             background: var(--aviation-color);
+        }
+
+        .nav-pills .nav-link.active.auto-dealers-tab {
+            background: var(--auto-dealers-color);
+        }
+
+        .nav-pills .nav-link.active.restaurants-tab {
+            background: var(--restaurants-color);
+            color: #333;
         }
 
         .badge-hot {
@@ -328,6 +369,16 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link aviation-tab" id="aviation-tab" data-bs-toggle="pill" data-bs-target="#aviation" type="button">
                     <i class="bi bi-airplane me-1"></i> Aviation
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link auto-dealers-tab" id="auto-dealers-tab" data-bs-toggle="pill" data-bs-target="#auto-dealers" type="button">
+                    <i class="bi bi-car-front me-1"></i> Auto Dealers
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link restaurants-tab" id="restaurants-tab" data-bs-toggle="pill" data-bs-target="#restaurants" type="button">
+                    <i class="bi bi-cup-hot me-1"></i> Restaurants
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -868,6 +919,278 @@
                 </div>
             </div>
 
+            <!-- Auto Dealers Tab -->
+            <div class="tab-pane fade" id="auto-dealers" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-car-front me-2"></i>Auto Dealer Search
+                            </div>
+                            <div class="card-body">
+                                <form id="autoDealersForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="autoDealersStates"
+                                               value="FL,TX,CA" placeholder="FL,TX,CA">
+                                        <small class="form-text text-muted">Comma-separated state codes</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Dealer Type (Optional)</label>
+                                        <select class="form-select" id="autoDealerType">
+                                            <option value="">All Types</option>
+                                            <option value="new">New Car Dealers</option>
+                                            <option value="used">Used Car Dealers</option>
+                                            <option value="rv">RV/Motorhome Dealers</option>
+                                            <option value="motorcycle">Motorcycle Dealers</option>
+                                            <option value="truck">Commercial Truck Dealers</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-auto-dealers w-100" id="startAutoDealersBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Find Auto Dealer Prospects
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-info-circle me-2"></i>Scoring Guide</div>
+                            <div class="card-body">
+                                <small>
+                                    <p class="mb-2"><strong>High Value (70+):</strong></p>
+                                    <ul class="mb-3">
+                                        <li>New car/franchise dealers (+30)</li>
+                                        <li>RV/motorhome dealers (+25)</li>
+                                        <li>Commercial truck dealers (+25)</li>
+                                    </ul>
+                                    <p class="mb-2"><strong>Financing Needs:</strong></p>
+                                    <ul class="mb-0">
+                                        <li>Floor plan financing</li>
+                                        <li>Service equipment (lifts, diagnostic)</li>
+                                        <li>Facility improvements</li>
+                                    </ul>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="autoDealersProgress" style="display: none;" class="card mb-4">
+                            <div class="card-body text-center py-4">
+                                <div class="spinner-border mb-3" style="color: var(--auto-dealers-color);" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar auto-dealers progress-bar-striped progress-bar-animated" id="autoDealersProgressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="autoDealersProgressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <div id="autoDealersResults" style="display: none;">
+                            <div class="trigger-info" id="autoDealersTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="autoDealersTriggerSummary"></span>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: var(--auto-dealers-color);" id="autoDealersTotalCount">0</h2>
+                                        <p>Total</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-danger" id="autoDealersHotCount">0</h2>
+                                        <p>Hot (70+)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-warning" id="autoDealersMediumCount">0</h2>
+                                        <p>Medium</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="autoDealersPhoneCount">0</h2>
+                                        <p>With Phone</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="autoDealersHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="autoDealersMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="bi bi-download me-2"></i>Download Results
+                                </div>
+                                <div class="card-body" id="autoDealersDownloadButtons"></div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="autoDealersInitial">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-car-front display-1 mb-3" style="color: var(--auto-dealers-color);"></i>
+                                <h4>Auto Dealers</h4>
+                                <p class="text-muted">Search for automotive dealerships by state. Find new car dealers, used car lots, RV dealers, and more with floor plan and equipment financing needs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restaurants Tab -->
+            <div class="tab-pane fade" id="restaurants" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-cup-hot me-2"></i>Restaurant Search
+                            </div>
+                            <div class="card-body">
+                                <form id="restaurantsForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target Cities</label>
+                                        <input type="text" class="form-control" id="restaurantsCities"
+                                               value="NYC" placeholder="NYC,Chicago,Austin">
+                                        <small class="form-text text-muted">Cities with health data: NYC, Chicago, Austin. Or use state codes (FL, TX) for registry search.</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Restaurant Type (Optional)</label>
+                                        <select class="form-select" id="restaurantType">
+                                            <option value="">All Types</option>
+                                            <option value="full_service">Full Service</option>
+                                            <option value="bakery">Bakery</option>
+                                            <option value="pizzeria">Pizzeria</option>
+                                            <option value="cafe">Cafe/Coffee</option>
+                                            <option value="bar">Bar/Nightclub</option>
+                                            <option value="catering">Catering</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-restaurants w-100" id="startRestaurantsBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Find Restaurant Prospects
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header"><i class="bi bi-info-circle me-2"></i>Scoring Guide</div>
+                            <div class="card-body">
+                                <small>
+                                    <p class="mb-2"><strong>High Value (70+):</strong></p>
+                                    <ul class="mb-3">
+                                        <li>Full service restaurants (+20)</li>
+                                        <li>Bakeries (+20)</li>
+                                        <li>Catering companies (+20)</li>
+                                        <li>Health Grade A (+15)</li>
+                                    </ul>
+                                    <p class="mb-2"><strong>Equipment Needs:</strong></p>
+                                    <ul class="mb-0">
+                                        <li>Kitchen equipment (ovens, ranges)</li>
+                                        <li>Refrigeration (walk-ins, reach-ins)</li>
+                                        <li>POS systems</li>
+                                    </ul>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="restaurantsProgress" style="display: none;" class="card mb-4">
+                            <div class="card-body text-center py-4">
+                                <div class="spinner-border mb-3" style="color: var(--restaurants-color);" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar restaurants progress-bar-striped progress-bar-animated" id="restaurantsProgressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="restaurantsProgressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <div id="restaurantsResults" style="display: none;">
+                            <div class="trigger-info" id="restaurantsTriggerInfo" style="display: none;">
+                                <i class="bi bi-lightning-charge-fill me-2"></i>
+                                <strong>Loan Triggers Detected!</strong>
+                                <span id="restaurantsTriggerSummary"></span>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: var(--restaurants-color);" id="restaurantsTotalCount">0</h2>
+                                        <p>Total</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-danger" id="restaurantsHotCount">0</h2>
+                                        <p>Hot (70+)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-warning" id="restaurantsMediumCount">0</h2>
+                                        <p>Medium</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="restaurantsPhoneCount">0</h2>
+                                        <p>With Phone</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card trigger-stat">
+                                        <h2 style="color: #e74c3c;" id="restaurantsHighTriggers">0</h2>
+                                        <p>High Triggers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card stat-card">
+                                        <h2 style="color: #f39c12;" id="restaurantsMedTriggers">0</h2>
+                                        <p>Med Triggers</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="bi bi-download me-2"></i>Download Results
+                                </div>
+                                <div class="card-body" id="restaurantsDownloadButtons"></div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="restaurantsInitial">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-cup-hot display-1 mb-3" style="color: var(--restaurants-color);"></i>
+                                <h4>Restaurants & Food Service</h4>
+                                <p class="text-muted">Search for restaurants from health inspection databases (NYC, Chicago, Austin) or state business registries. Find bakeries, full-service restaurants, and catering companies with equipment financing needs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Lookups Tab -->
             <div class="tab-pane fade" id="lookup" role="tabpanel">
                 <div class="row">
@@ -1223,6 +1546,64 @@
                 max_aircraft: document.getElementById('maxAircraft').value,
                 businesses_only: document.getElementById('aviationBusinessOnly').checked,
                 turbine_only: document.getElementById('aviationTurbineOnly').checked
+            })
+        });
+
+        // Initialize Auto Dealers Search
+        createIndustrySearch({
+            formId: 'autoDealersForm',
+            apiEndpoint: '/api/auto-dealers',
+            progressId: 'autoDealersProgress',
+            progressBarId: 'autoDealersProgressBar',
+            progressMessageId: 'autoDealersProgressMessage',
+            resultsId: 'autoDealersResults',
+            initialId: 'autoDealersInitial',
+            buttonId: 'startAutoDealersBtn',
+            statesInputId: 'autoDealersStates',
+            downloadButtonsId: 'autoDealersDownloadButtons',
+            buttonText: '<i class="bi bi-play-fill me-1"></i> Find Auto Dealer Prospects',
+            triggerInfoId: 'autoDealersTriggerInfo',
+            triggerSummaryId: 'autoDealersTriggerSummary',
+            highTriggersId: 'autoDealersHighTriggers',
+            medTriggersId: 'autoDealersMedTriggers',
+            statsMapping: {
+                'autoDealersTotalCount': 'total',
+                'autoDealersHotCount': 'hot_count',
+                'autoDealersMediumCount': 'medium_count',
+                'autoDealersPhoneCount': 'with_phone'
+            },
+            buildData: () => ({
+                states: document.getElementById('autoDealersStates').value,
+                dealer_type: document.getElementById('autoDealerType').value
+            })
+        });
+
+        // Initialize Restaurants Search
+        createIndustrySearch({
+            formId: 'restaurantsForm',
+            apiEndpoint: '/api/restaurants',
+            progressId: 'restaurantsProgress',
+            progressBarId: 'restaurantsProgressBar',
+            progressMessageId: 'restaurantsProgressMessage',
+            resultsId: 'restaurantsResults',
+            initialId: 'restaurantsInitial',
+            buttonId: 'startRestaurantsBtn',
+            statesInputId: 'restaurantsCities',
+            downloadButtonsId: 'restaurantsDownloadButtons',
+            buttonText: '<i class="bi bi-play-fill me-1"></i> Find Restaurant Prospects',
+            triggerInfoId: 'restaurantsTriggerInfo',
+            triggerSummaryId: 'restaurantsTriggerSummary',
+            highTriggersId: 'restaurantsHighTriggers',
+            medTriggersId: 'restaurantsMedTriggers',
+            statsMapping: {
+                'restaurantsTotalCount': 'total',
+                'restaurantsHotCount': 'hot_count',
+                'restaurantsMediumCount': 'medium_count',
+                'restaurantsPhoneCount': 'with_phone'
+            },
+            buildData: () => ({
+                cities: document.getElementById('restaurantsCities').value,
+                restaurant_type: document.getElementById('restaurantType').value
             })
         });
 

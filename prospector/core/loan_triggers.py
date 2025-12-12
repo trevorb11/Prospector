@@ -658,6 +658,320 @@ class AviationTriggerDetector(LoanTriggerDetector):
         return triggers
 
 
+class AutoDealerTriggerDetector(LoanTriggerDetector):
+    """
+    Auto dealer-specific loan trigger detection.
+
+    Detects triggers like:
+    - Floor plan financing needs
+    - New model year inventory timing
+    - Equipment upgrade cycles
+    - Facility expansion signals
+    """
+
+    # Equipment cycles for dealerships (years)
+    EQUIPMENT_CYCLES = {
+        "lifts": 10,           # Vehicle lifts
+        "diagnostic": 5,       # Diagnostic equipment
+        "pos": 7,              # POS/computer systems
+        "signage": 8,          # Signage and displays
+    }
+
+    # High-value dealer types
+    HIGH_VALUE_TYPES = [
+        "new car", "rv", "motorhome", "commercial truck",
+        "heavy equipment", "franchise"
+    ]
+
+    def detect_triggers(self, record: Dict[str, Any]) -> List[LoanTrigger]:
+        """Detect auto dealer-specific loan triggers."""
+        triggers = super().detect_triggers(record)
+
+        industry_data = record.get("industry_data", {})
+        dealer_type = industry_data.get("Dealer Type", "").lower()
+        incorporation_date = industry_data.get("Incorporation Date", "")
+        years = record.get("years_in_business")
+
+        # Check dealer type triggers
+        triggers.extend(self._check_dealer_type_triggers(dealer_type))
+
+        # Check inventory timing (new model year)
+        triggers.extend(self._check_inventory_timing())
+
+        # Check equipment lifecycle
+        triggers.extend(self._check_equipment_lifecycle(years))
+
+        # Check for new dealer
+        triggers.extend(self._check_new_dealer(incorporation_date))
+
+        return triggers
+
+    def _check_dealer_type_triggers(self, dealer_type: str) -> List[LoanTrigger]:
+        """Check for high-value dealer type triggers."""
+        triggers = []
+
+        for high_value in self.HIGH_VALUE_TYPES:
+            if high_value in dealer_type:
+                triggers.append(LoanTrigger(
+                    trigger_type=TriggerType.HIGH_VALUE_SPECIALTY,
+                    priority=TriggerPriority.HIGH,
+                    name=f"High-Value Dealer: {dealer_type.title()}",
+                    description=f"{dealer_type.title()} dealers have significant inventory financing needs",
+                    score_boost=15,
+                    details={"dealer_type": dealer_type}
+                ))
+                break
+
+        return triggers
+
+    def _check_inventory_timing(self) -> List[LoanTrigger]:
+        """Check for new model year inventory timing."""
+        triggers = []
+
+        # Aug-Oct is new model year season - dealers need floor plan financing
+        if self.current_month in [8, 9, 10]:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.SEASONALITY,
+                priority=TriggerPriority.HIGH,
+                name="New Model Year Season",
+                description="New model year inventory arriving - dealers need floor plan financing",
+                score_boost=20,
+                details={"season": "new_model_year", "months": [8, 9, 10]}
+            ))
+        # Jan-Feb is slow season - good time for equipment upgrades
+        elif self.current_month in [1, 2]:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.SEASONALITY,
+                priority=TriggerPriority.MEDIUM,
+                name="Off-Season Equipment Time",
+                description="Slower sales season - good time for facility/equipment upgrades",
+                score_boost=10,
+                details={"season": "off_season", "months": [1, 2]}
+            ))
+
+        return triggers
+
+    def _check_equipment_lifecycle(self, years: Optional[float]) -> List[LoanTrigger]:
+        """Check equipment replacement cycles for dealerships."""
+        triggers = []
+
+        if years is None:
+            return triggers
+
+        # Check lift replacement cycle (10 years)
+        if years > 0 and years >= 8 and (years % 10) <= 2:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.EQUIPMENT_LIFECYCLE,
+                priority=TriggerPriority.HIGH,
+                name="Service Equipment Upgrade",
+                description=f"Dealership is ~{int(years)} years old - likely needs lift/diagnostic equipment refresh",
+                score_boost=15,
+                details={"business_age": years, "equipment_type": "service"}
+            ))
+
+        # Check POS/technology upgrade (5-7 years)
+        if years > 0 and years >= 5 and (years % 6) <= 1:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.EQUIPMENT_LIFECYCLE,
+                priority=TriggerPriority.MEDIUM,
+                name="Technology Refresh Cycle",
+                description="May need POS, DMS, or computer system upgrades",
+                score_boost=10,
+                details={"business_age": years, "equipment_type": "technology"}
+            ))
+
+        return triggers
+
+    def _check_new_dealer(self, incorporation_date: str) -> List[LoanTrigger]:
+        """Check for newly established dealers."""
+        triggers = []
+
+        if incorporation_date:
+            try:
+                inc_year = int(str(incorporation_date)[:4])
+                years_since = self.current_year - inc_year
+
+                if years_since <= 2:
+                    triggers.append(LoanTrigger(
+                        trigger_type=TriggerType.NEW_BUSINESS,
+                        priority=TriggerPriority.HIGH,
+                        name="New Dealership",
+                        description=f"Established in {inc_year} - new dealers need floor plan and equipment financing",
+                        score_boost=20,
+                        details={"incorporation_year": inc_year, "years_since": years_since}
+                    ))
+            except (ValueError, TypeError):
+                pass
+
+        return triggers
+
+
+class RestaurantTriggerDetector(LoanTriggerDetector):
+    """
+    Restaurant-specific loan trigger detection.
+
+    Detects triggers like:
+    - Equipment replacement cycles
+    - Expansion signals
+    - Seasonal patterns
+    - Renovation timing
+    """
+
+    # Equipment cycles for restaurants (years)
+    EQUIPMENT_CYCLES = {
+        "kitchen": 7,          # Commercial kitchen equipment
+        "refrigeration": 8,    # Walk-ins, reach-ins
+        "hvac": 10,            # HVAC systems
+        "pos": 5,              # POS systems
+        "furniture": 6,        # Tables, chairs, booths
+    }
+
+    # High-value restaurant types
+    HIGH_VALUE_TYPES = [
+        "full service", "catering", "bakery", "steakhouse",
+        "fine dining", "brewery", "distillery"
+    ]
+
+    def detect_triggers(self, record: Dict[str, Any]) -> List[LoanTrigger]:
+        """Detect restaurant-specific loan triggers."""
+        triggers = super().detect_triggers(record)
+
+        industry_data = record.get("industry_data", {})
+        restaurant_type = industry_data.get("Restaurant Type", "").lower()
+        health_grade = industry_data.get("Health Grade", "")
+        years = record.get("years_in_business")
+
+        # Check restaurant type triggers
+        triggers.extend(self._check_restaurant_type_triggers(restaurant_type))
+
+        # Check equipment lifecycle
+        triggers.extend(self._check_equipment_lifecycle(years))
+
+        # Check renovation timing (post-inspection)
+        triggers.extend(self._check_renovation_timing(health_grade))
+
+        # Check seasonal patterns
+        triggers.extend(self._check_seasonal_patterns())
+
+        return triggers
+
+    def _check_restaurant_type_triggers(self, restaurant_type: str) -> List[LoanTrigger]:
+        """Check for high-value restaurant type triggers."""
+        triggers = []
+
+        for high_value in self.HIGH_VALUE_TYPES:
+            if high_value in restaurant_type:
+                triggers.append(LoanTrigger(
+                    trigger_type=TriggerType.HIGH_VALUE_SPECIALTY,
+                    priority=TriggerPriority.HIGH,
+                    name=f"High-Value Restaurant: {restaurant_type.title()}",
+                    description=f"{restaurant_type.title()} restaurants have significant equipment needs",
+                    score_boost=15,
+                    details={"restaurant_type": restaurant_type}
+                ))
+                break
+
+        # Bakeries always need specialized equipment
+        if "bakery" in restaurant_type:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.HIGH_VALUE_SPECIALTY,
+                priority=TriggerPriority.HIGH,
+                name="Bakery Equipment Needs",
+                description="Bakeries require expensive specialized equipment (ovens, mixers, proofers)",
+                score_boost=15,
+                details={"restaurant_type": restaurant_type}
+            ))
+
+        return triggers
+
+    def _check_equipment_lifecycle(self, years: Optional[float]) -> List[LoanTrigger]:
+        """Check equipment replacement cycles for restaurants."""
+        triggers = []
+
+        if years is None:
+            return triggers
+
+        # Kitchen equipment cycle (7 years)
+        if years > 0 and (years % 7) <= 1:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.EQUIPMENT_LIFECYCLE,
+                priority=TriggerPriority.HIGH,
+                name="Kitchen Equipment Refresh",
+                description=f"Restaurant is ~{int(years)} years old - kitchen equipment typically replaced every 7 years",
+                score_boost=15,
+                details={"business_age": years, "equipment_type": "kitchen"}
+            ))
+
+        # Refrigeration cycle (8 years)
+        if years > 0 and years >= 6 and (years % 8) <= 2:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.EQUIPMENT_LIFECYCLE,
+                priority=TriggerPriority.MEDIUM,
+                name="Refrigeration Upgrade",
+                description="May need walk-in cooler/freezer or refrigeration upgrades",
+                score_boost=10,
+                details={"business_age": years, "equipment_type": "refrigeration"}
+            ))
+
+        # POS refresh (5 years)
+        if years > 0 and years >= 4 and (years % 5) <= 1:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.EQUIPMENT_LIFECYCLE,
+                priority=TriggerPriority.MEDIUM,
+                name="POS System Upgrade",
+                description="May need POS system upgrade or replacement",
+                score_boost=8,
+                details={"business_age": years, "equipment_type": "pos"}
+            ))
+
+        return triggers
+
+    def _check_renovation_timing(self, health_grade: str) -> List[LoanTrigger]:
+        """Check for renovation triggers based on health inspection."""
+        triggers = []
+
+        # B or C grade might prompt renovation/upgrades
+        if health_grade in ["B", "C"]:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.REGULATORY,
+                priority=TriggerPriority.MEDIUM,
+                name="Post-Inspection Upgrades",
+                description=f"Health grade {health_grade} - may be considering equipment/facility upgrades",
+                score_boost=10,
+                details={"health_grade": health_grade}
+            ))
+
+        return triggers
+
+    def _check_seasonal_patterns(self) -> List[LoanTrigger]:
+        """Check for seasonal patterns in restaurant industry."""
+        triggers = []
+
+        # Jan-Feb is slow season - good for equipment upgrades
+        if self.current_month in [1, 2]:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.SEASONALITY,
+                priority=TriggerPriority.MEDIUM,
+                name="Off-Season Renovation Time",
+                description="Post-holiday slow season - ideal time for renovations and equipment upgrades",
+                score_boost=10,
+                details={"season": "post_holiday", "months": [1, 2]}
+            ))
+
+        # Pre-summer (Apr-May) - preparing for busy season
+        elif self.current_month in [4, 5]:
+            triggers.append(LoanTrigger(
+                trigger_type=TriggerType.SEASONALITY,
+                priority=TriggerPriority.MEDIUM,
+                name="Pre-Summer Preparation",
+                description="Preparing for busy summer season - may need equipment or patio upgrades",
+                score_boost=8,
+                details={"season": "pre_summer", "months": [4, 5]}
+            ))
+
+        return triggers
+
+
 def get_trigger_detector(industry: str) -> LoanTriggerDetector:
     """
     Factory function to get the appropriate trigger detector for an industry.
@@ -676,6 +990,10 @@ def get_trigger_detector(industry: str) -> LoanTriggerDetector:
         return ConstructionTriggerDetector()
     elif "aviation" in industry_lower or "faa" in industry_lower or "aircraft" in industry_lower:
         return AviationTriggerDetector()
+    elif "auto" in industry_lower or "dealer" in industry_lower or "car" in industry_lower:
+        return AutoDealerTriggerDetector()
+    elif "restaurant" in industry_lower or "food" in industry_lower:
+        return RestaurantTriggerDetector()
     else:
         return LoanTriggerDetector()
 

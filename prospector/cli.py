@@ -482,6 +482,212 @@ def aviation(
 
 
 @cli.command()
+@click.option(
+    "--states", "-s",
+    default="FL,TX,CA,GA,NC,AZ,CO,TN,OH,PA",
+    help="Comma-separated list of state abbreviations",
+)
+@click.option(
+    "--dealer-type", "-t",
+    default=None,
+    help="Filter by dealer type (e.g., 'new', 'used', 'rv', 'motorcycle')",
+)
+@click.option(
+    "--output", "-o",
+    default=None,
+    help="Output file path (default: auto_dealers_YYYYMMDD.csv)",
+)
+@click.option(
+    "--format", "-f",
+    type=click.Choice(["csv", "excel"]),
+    default="csv",
+    help="Output format",
+)
+@click.option(
+    "--hot-threshold",
+    default=70,
+    type=int,
+    help="Score threshold for hot prospects",
+)
+def auto_dealers(
+    states: str,
+    dealer_type: Optional[str],
+    output: Optional[str],
+    format: str,
+    hot_threshold: int,
+):
+    """
+    Find auto dealer prospects from business registries.
+
+    Pulls dealer data from state business registries and filters
+    based on location and dealer type. Focuses on dealers with
+    floor plan and equipment financing needs.
+
+    Examples:
+
+        # Basic usage - all default states
+        prospector auto-dealers
+
+        # Specific states
+        prospector auto-dealers -s FL,TX,CA
+
+        # Filter by dealer type
+        prospector auto-dealers -t rv
+
+        # Export to Excel
+        prospector auto-dealers -f excel -o dealers.xlsx
+    """
+    from prospector.industries.auto_dealers import AutoDealerProspector
+    from prospector.utils.display import print_banner, print_summary
+
+    print_banner(
+        "AUTO DEALER PROSPECT FINDER",
+        "For Today Capital Group"
+    )
+
+    # Parse states
+    state_list = [s.strip().upper() for s in states.split(",")]
+
+    # Build config
+    config = {
+        "target_states": state_list,
+    }
+
+    if dealer_type:
+        config["dealer_types"] = [dealer_type]
+
+    # Run prospector
+    prospector = AutoDealerProspector(config)
+    prospects = prospector.run(score=True)
+
+    if not prospects:
+        click.echo("\nNo prospects found matching your criteria.")
+        return
+
+    # Print summary
+    summary = prospector.get_summary()
+    print_summary(summary, "Auto Dealers")
+
+    # Determine output filename
+    if not output:
+        date_str = datetime.now().strftime("%Y%m%d")
+        ext = "xlsx" if format == "excel" else "csv"
+        output = f"auto_dealers_{date_str}.{ext}"
+
+    # Export
+    if format == "excel":
+        prospector.export_excel(output, hot_threshold=hot_threshold)
+    else:
+        prospector.export_csv(output, hot_threshold=hot_threshold)
+
+    click.echo(f"\n  Output saved to: {output}")
+
+
+@cli.command()
+@click.option(
+    "--cities", "-c",
+    default="NYC",
+    help="Comma-separated list of cities (NYC, Chicago, Austin) or state abbreviations",
+)
+@click.option(
+    "--restaurant-type", "-t",
+    default=None,
+    help="Filter by type (e.g., 'pizza', 'bakery', 'bar', 'cafe')",
+)
+@click.option(
+    "--output", "-o",
+    default=None,
+    help="Output file path (default: restaurants_YYYYMMDD.csv)",
+)
+@click.option(
+    "--format", "-f",
+    type=click.Choice(["csv", "excel"]),
+    default="csv",
+    help="Output format",
+)
+@click.option(
+    "--hot-threshold",
+    default=70,
+    type=int,
+    help="Score threshold for hot prospects",
+)
+def restaurants(
+    cities: str,
+    restaurant_type: Optional[str],
+    output: Optional[str],
+    format: str,
+    hot_threshold: int,
+):
+    """
+    Find restaurant prospects from health inspection databases.
+
+    Pulls restaurant data from city health departments and business
+    registries. Focuses on restaurants with equipment financing needs.
+
+    Examples:
+
+        # NYC restaurants (default)
+        prospector restaurants
+
+        # Multiple cities
+        prospector restaurants -c NYC,Chicago,Austin
+
+        # Filter by type
+        prospector restaurants -t bakery
+
+        # Use state abbreviation for business registry search
+        prospector restaurants -c FL
+
+        # Export to Excel
+        prospector restaurants -f excel -o restaurants.xlsx
+    """
+    from prospector.industries.restaurants import RestaurantProspector
+    from prospector.utils.display import print_banner, print_summary
+
+    print_banner(
+        "RESTAURANT PROSPECT FINDER",
+        "For Today Capital Group"
+    )
+
+    # Parse cities/states
+    city_list = [c.strip() for c in cities.split(",")]
+
+    # Build config
+    config = {
+        "target_cities": city_list,
+    }
+
+    if restaurant_type:
+        config["restaurant_types"] = [restaurant_type]
+
+    # Run prospector
+    prospector = RestaurantProspector(config)
+    prospects = prospector.run(score=True)
+
+    if not prospects:
+        click.echo("\nNo prospects found matching your criteria.")
+        return
+
+    # Print summary
+    summary = prospector.get_summary()
+    print_summary(summary, "Restaurants")
+
+    # Determine output filename
+    if not output:
+        date_str = datetime.now().strftime("%Y%m%d")
+        ext = "xlsx" if format == "excel" else "csv"
+        output = f"restaurants_{date_str}.{ext}"
+
+    # Export
+    if format == "excel":
+        prospector.export_excel(output, hot_threshold=hot_threshold)
+    else:
+        prospector.export_csv(output, hot_threshold=hot_threshold)
+
+    click.echo(f"\n  Output saved to: {output}")
+
+
+@cli.command()
 @click.argument("npi_number")
 def npi_lookup(npi_number: str):
     """

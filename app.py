@@ -614,6 +614,209 @@ def run_npi_lookup_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_auto_dealers_job(job: ProspectorJob):
+    """Run an auto dealers prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting auto dealer prospect search..."
+
+        from prospector.industries.auto_dealers import AutoDealerProspector
+
+        config = {
+            "target_states": job.config.get("states", ["FL"]),
+            "limit_per_state": job.config.get("limit_per_state", 500),
+        }
+
+        if job.config.get("dealer_type"):
+            config["dealer_types"] = [job.config.get("dealer_type")]
+
+        prospector = AutoDealerProspector(config)
+
+        # Fetch with progress updates
+        all_records = []
+        states = config["target_states"]
+        total_states = len(states)
+
+        for i, state in enumerate(states):
+            job.progress = int((i / total_states) * 70)
+            job.progress_message = f"Fetching {state}... ({i+1}/{total_states})"
+
+            state_records = prospector._fetch_state_data(state)
+            all_records.extend(state_records)
+            time.sleep(0.3)
+
+        job.progress = 70
+        job.progress_message = f"Processing {len(all_records)} records..."
+
+        # Process records
+        prospects = []
+        for raw in all_records:
+            try:
+                record = prospector.parse_record(raw)
+                record.source = prospector.get_industry_name()
+                prospects.append(record)
+            except Exception:
+                continue
+
+        # Score prospects
+        job.progress = 80
+        job.progress_message = "Scoring prospects..."
+
+        from prospector.core.scoring import ScoringEngine
+        scoring_engine = ScoringEngine(prospector.get_scoring_rules())
+        prospects = [scoring_engine.score(r) for r in prospects]
+
+        # Enrich with loan triggers
+        job.progress = 88
+        if job.config.get("enrich", True):
+            prospects, trigger_stats = enrich_prospects_with_triggers(prospects, prospector, job)
+        else:
+            trigger_stats = {}
+
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+        prospector._prospects = prospects
+
+        # Export to CSV
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"auto_dealers_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"auto_dealers_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+            job.stats.update(trigger_stats)
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_restaurants_job(job: ProspectorJob):
+    """Run a restaurant prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting restaurant prospect search..."
+
+        from prospector.industries.restaurants import RestaurantProspector
+
+        config = {
+            "target_cities": job.config.get("cities", ["NYC"]),
+            "limit_per_city": job.config.get("limit_per_city", 500),
+        }
+
+        if job.config.get("restaurant_type"):
+            config["restaurant_types"] = [job.config.get("restaurant_type")]
+
+        prospector = RestaurantProspector(config)
+
+        # Fetch with progress updates
+        all_records = []
+        cities = config["target_cities"]
+        total_cities = len(cities)
+
+        for i, city in enumerate(cities):
+            job.progress = int((i / total_cities) * 70)
+            job.progress_message = f"Fetching {city}... ({i+1}/{total_cities})"
+
+            if city.upper() in prospector.HEALTH_INSPECTION_DATASETS:
+                city_records = prospector._fetch_city_data(city.upper())
+            else:
+                city_records = prospector._fetch_from_registry(city)
+            all_records.extend(city_records)
+            time.sleep(0.3)
+
+        job.progress = 70
+        job.progress_message = f"Processing {len(all_records)} records..."
+
+        # Process records
+        prospects = []
+        for raw in all_records:
+            try:
+                record = prospector.parse_record(raw)
+                record.source = prospector.get_industry_name()
+                prospects.append(record)
+            except Exception:
+                continue
+
+        # Score prospects
+        job.progress = 80
+        job.progress_message = "Scoring prospects..."
+
+        from prospector.core.scoring import ScoringEngine
+        scoring_engine = ScoringEngine(prospector.get_scoring_rules())
+        prospects = [scoring_engine.score(r) for r in prospects]
+
+        # Enrich with loan triggers
+        job.progress = 88
+        if job.config.get("enrich", True):
+            prospects, trigger_stats = enrich_prospects_with_triggers(prospects, prospector, job)
+        else:
+            trigger_stats = {}
+
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+        prospector._prospects = prospects
+
+        # Export to CSV
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"restaurants_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"restaurants_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+            job.stats.update(trigger_stats)
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 # Routes
 
 @app.route("/")
@@ -820,6 +1023,60 @@ def start_npi_lookup():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_npi_lookup_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/auto-dealers", methods=["POST"])
+def start_auto_dealers_search():
+    """Start a new auto dealer prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "dealer_type": data.get("dealer_type"),
+        "limit_per_state": int(data.get("limit_per_state", 500)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_auto_dealers_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/restaurants", methods=["POST"])
+def start_restaurants_search():
+    """Start a new restaurant prospect search job."""
+    data = request.json or {}
+
+    cities_str = data.get("cities", "NYC")
+    cities = [c.strip() for c in cities_str.split(",") if c.strip()]
+
+    if not cities:
+        return jsonify({"error": "Please provide at least one city"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "cities": cities,
+        "restaurant_type": data.get("restaurant_type"),
+        "limit_per_city": int(data.get("limit_per_city", 500)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_restaurants_job, args=(job,))
     thread.daemon = True
     thread.start()
 
