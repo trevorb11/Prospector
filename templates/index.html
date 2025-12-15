@@ -234,6 +234,16 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="healthcare-tab" data-bs-toggle="pill" data-bs-target="#healthcare" type="button">
+                    <i class="bi bi-hospital me-1"></i> Healthcare
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="aviation-tab" data-bs-toggle="pill" data-bs-target="#aviation" type="button">
+                    <i class="bi bi-airplane me-1"></i> Aviation
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
                     <i class="bi bi-folder me-1"></i> Downloads
                 </button>
@@ -555,6 +565,264 @@
                                         <span id="matchErrorText"></span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Healthcare Tab -->
+            <div class="tab-pane fade" id="healthcare" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-hospital me-2"></i>Healthcare Provider Search
+                            </div>
+                            <div class="card-body">
+                                <form id="healthcareForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="healthcareStates"
+                                               value="FL,GA,TX,CA"
+                                               placeholder="e.g., FL,GA,TX">
+                                        <small class="text-muted">Comma-separated state abbreviations</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records/State</label>
+                                        <select class="form-select" id="healthcareLimit">
+                                            <option value="250">250 (Quick)</option>
+                                            <option value="500" selected>500 (Standard)</option>
+                                            <option value="1000">1,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="orgOnly" checked>
+                                        <label class="form-check-label" for="orgOnly">
+                                            Organizations only (exclude individuals)
+                                        </label>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startHealthcareBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search Healthcare Providers
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About Healthcare Data
+                            </div>
+                            <div class="card-body small">
+                                <p>Data from the <strong>CMS NPI Registry</strong> - the national database of healthcare providers.</p>
+                                <p class="mb-1"><strong>Best prospects for equipment financing:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Dental practices</li>
+                                    <li>Radiology centers</li>
+                                    <li>Surgery centers</li>
+                                    <li>Physical therapy clinics</li>
+                                    <li>Multi-specialty clinics</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="card mb-4" id="healthcareProgress" style="display: none;">
+                            <div class="card-body">
+                                <h5><i class="bi bi-hourglass-split me-2"></i>Search Progress</h5>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="healthcareProgressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="healthcareProgressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <div id="healthcareResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-primary" id="healthcareTotalCount">0</h2>
+                                        <p>Total Providers</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="healthcareHotCount">0</h2>
+                                        <p>Hot Prospects</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-info" id="healthcareAvgScore">0</h2>
+                                        <p>Avg Score</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-download me-2"></i>Download Results</span>
+                                </div>
+                                <div class="card-body">
+                                    <a href="#" id="healthcareDownloadAll" class="btn btn-primary me-2">
+                                        <i class="bi bi-file-earmark-spreadsheet me-1"></i> All Prospects
+                                    </a>
+                                    <a href="#" id="healthcareDownloadHot" class="btn btn-success" style="display: none;">
+                                        <i class="bi bi-fire me-1"></i> Hot Prospects Only
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="healthcareEmpty">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-hospital display-4 text-muted"></i>
+                                <h5 class="mt-3 text-muted">Healthcare Provider Search</h5>
+                                <p class="text-muted">Search the NPI Registry for dental practices, clinics, surgery centers, and other healthcare organizations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aviation Tab -->
+            <div class="tab-pane fade" id="aviation" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-airplane me-2"></i>Aircraft Owner Search
+                            </div>
+                            <div class="card-body">
+                                <form id="aviationForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="aviationStates"
+                                               value="FL,TX,CA,AZ"
+                                               placeholder="e.g., FL,TX,CA">
+                                        <small class="text-muted">Comma-separated state abbreviations</small>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Min Aircraft</label>
+                                            <input type="number" class="form-control" id="minAircraft" value="1" min="1">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Max Aircraft</label>
+                                            <input type="number" class="form-control" id="maxAircraft" value="100" min="1">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records/State</label>
+                                        <select class="form-select" id="aviationLimit">
+                                            <option value="250">250 (Quick)</option>
+                                            <option value="500" selected>500 (Standard)</option>
+                                            <option value="1000">1,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="businessesOnly" checked>
+                                        <label class="form-check-label" for="businessesOnly">
+                                            Businesses only (Corps, LLCs, Partnerships)
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="turbineOnly">
+                                        <label class="form-check-label" for="turbineOnly">
+                                            Turbine aircraft only (high value)
+                                        </label>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startAviationBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search Aircraft Owners
+                                    </button>
+                                </form>
+
+                                <div class="alert alert-info mt-3 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Note:</strong> Aviation search downloads the FAA database (~500MB). First search may take 2-3 minutes.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About Aviation Data
+                            </div>
+                            <div class="card-body small">
+                                <p>Data from the <strong>FAA Aircraft Registry</strong> - all registered aircraft in the US.</p>
+                                <p class="mb-1"><strong>Best prospects for financing:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Fleet operators (2+ aircraft)</li>
+                                    <li>Turbine/jet aircraft owners</li>
+                                    <li>Helicopter operators</li>
+                                    <li>Corporate flight departments</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div class="card mb-4" id="aviationProgress" style="display: none;">
+                            <div class="card-body">
+                                <h5><i class="bi bi-hourglass-split me-2"></i>Search Progress</h5>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="aviationProgressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="aviationProgressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <div id="aviationResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-primary" id="aviationTotalCount">0</h2>
+                                        <p>Total Owners</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="aviationHotCount">0</h2>
+                                        <p>Hot Prospects</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card stat-card">
+                                        <h2 class="text-info" id="aviationAvgScore">0</h2>
+                                        <p>Avg Score</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-download me-2"></i>Download Results</span>
+                                </div>
+                                <div class="card-body">
+                                    <a href="#" id="aviationDownloadAll" class="btn btn-primary me-2">
+                                        <i class="bi bi-file-earmark-spreadsheet me-1"></i> All Prospects
+                                    </a>
+                                    <a href="#" id="aviationDownloadHot" class="btn btn-success" style="display: none;">
+                                        <i class="bi bi-fire me-1"></i> Hot Prospects Only
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="aviationEmpty">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-airplane display-4 text-muted"></i>
+                                <h5 class="mt-3 text-muted">Aircraft Owner Search</h5>
+                                <p class="text-muted">Search the FAA Registry for aircraft owners, fleet operators, and aviation businesses.</p>
                             </div>
                         </div>
                     </div>
@@ -1089,6 +1357,181 @@
                 document.getElementById('matchErrorText').textContent = error.message;
             }
         });
+
+        // Healthcare Search
+        let healthcareJobId = null;
+        let healthcarePollInterval = null;
+
+        document.getElementById('healthcareForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('healthcareStates').value,
+                organizations_only: document.getElementById('orgOnly').checked,
+                limit_per_state: document.getElementById('healthcareLimit').value
+            };
+
+            document.getElementById('healthcareEmpty').style.display = 'none';
+            document.getElementById('healthcareResults').style.display = 'none';
+            document.getElementById('healthcareProgress').style.display = 'block';
+            document.getElementById('startHealthcareBtn').disabled = true;
+            document.getElementById('startHealthcareBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/healthcare', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                healthcareJobId = result.job_id;
+
+                healthcarePollInterval = setInterval(pollHealthcareStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetHealthcareForm();
+            }
+        });
+
+        async function pollHealthcareStatus() {
+            try {
+                const response = await fetch(`/api/job/${healthcareJobId}`);
+                const job = await response.json();
+
+                document.getElementById('healthcareProgressBar').style.width = job.progress + '%';
+                document.getElementById('healthcareProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(healthcarePollInterval);
+                    showHealthcareResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(healthcarePollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetHealthcareForm();
+                }
+            } catch (error) {
+                clearInterval(healthcarePollInterval);
+                alert('Error checking status: ' + error.message);
+                resetHealthcareForm();
+            }
+        }
+
+        function resetHealthcareForm() {
+            document.getElementById('healthcareProgress').style.display = 'none';
+            document.getElementById('healthcareEmpty').style.display = 'block';
+            document.getElementById('startHealthcareBtn').disabled = false;
+            document.getElementById('startHealthcareBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Healthcare Providers';
+        }
+
+        function showHealthcareResults(job) {
+            document.getElementById('healthcareProgress').style.display = 'none';
+            document.getElementById('healthcareResults').style.display = 'block';
+            document.getElementById('startHealthcareBtn').disabled = false;
+            document.getElementById('startHealthcareBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Healthcare Providers';
+
+            const stats = job.stats || {};
+            document.getElementById('healthcareTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('healthcareHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('healthcareAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('healthcareDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+            if (job.hot_file) {
+                document.getElementById('healthcareDownloadHot').href = `/api/download/${job.hot_file}`;
+                document.getElementById('healthcareDownloadHot').style.display = 'inline-block';
+            }
+        }
+
+        // Aviation Search
+        let aviationJobId = null;
+        let aviationPollInterval = null;
+
+        document.getElementById('aviationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('aviationStates').value,
+                min_aircraft: document.getElementById('minAircraft').value,
+                max_aircraft: document.getElementById('maxAircraft').value,
+                businesses_only: document.getElementById('businessesOnly').checked,
+                turbine_only: document.getElementById('turbineOnly').checked,
+                limit_per_state: document.getElementById('aviationLimit').value
+            };
+
+            document.getElementById('aviationEmpty').style.display = 'none';
+            document.getElementById('aviationResults').style.display = 'none';
+            document.getElementById('aviationProgress').style.display = 'block';
+            document.getElementById('startAviationBtn').disabled = true;
+            document.getElementById('startAviationBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/aviation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                aviationJobId = result.job_id;
+
+                aviationPollInterval = setInterval(pollAviationStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetAviationForm();
+            }
+        });
+
+        async function pollAviationStatus() {
+            try {
+                const response = await fetch(`/api/job/${aviationJobId}`);
+                const job = await response.json();
+
+                document.getElementById('aviationProgressBar').style.width = job.progress + '%';
+                document.getElementById('aviationProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(aviationPollInterval);
+                    showAviationResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(aviationPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetAviationForm();
+                }
+            } catch (error) {
+                clearInterval(aviationPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetAviationForm();
+            }
+        }
+
+        function resetAviationForm() {
+            document.getElementById('aviationProgress').style.display = 'none';
+            document.getElementById('aviationEmpty').style.display = 'block';
+            document.getElementById('startAviationBtn').disabled = false;
+            document.getElementById('startAviationBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Aircraft Owners';
+        }
+
+        function showAviationResults(job) {
+            document.getElementById('aviationProgress').style.display = 'none';
+            document.getElementById('aviationResults').style.display = 'block';
+            document.getElementById('startAviationBtn').disabled = false;
+            document.getElementById('startAviationBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Aircraft Owners';
+
+            const stats = job.stats || {};
+            document.getElementById('aviationTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('aviationHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('aviationAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('aviationDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+            if (job.hot_file) {
+                document.getElementById('aviationDownloadHot').href = `/api/download/${job.hot_file}`;
+                document.getElementById('aviationDownloadHot').style.display = 'inline-block';
+            }
+        }
 
         // Initial load
         loadFiles();
