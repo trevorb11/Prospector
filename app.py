@@ -516,6 +516,191 @@ def run_aviation_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_federal_contractors_job(job: ProspectorJob):
+    """Run a federal contractors prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting federal contractor search..."
+
+        from prospector.industries.federal_contractors import FederalContractorProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = FederalContractorProspector()
+
+        prospects = prospector.search(
+            states=job.config.get("states"),
+            naics_codes=job.config.get("naics_codes"),
+            small_business_only=job.config.get("small_business_only", True),
+            active_only=job.config.get("active_only", True),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        # Export to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"federal_contractors_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            # Calculate scores and create hot file
+            avg_score = 50  # Default score
+            hot_count = len([p for p in prospects if p.phone or p.email])
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": hot_count,
+                "avg_score": avg_score
+            }
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_ppp_loans_job(job: ProspectorJob):
+    """Run a PPP loan recipients prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting PPP loan recipient search..."
+
+        from prospector.industries.ppp_loans import PPPLoanProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = PPPLoanProspector()
+
+        prospects = prospector.search(
+            states=job.config.get("states"),
+            min_loan_amount=job.config.get("min_loan_amount", 0),
+            max_loan_amount=job.config.get("max_loan_amount", float('inf')),
+            min_jobs=job.config.get("min_jobs", 0),
+            forgiven_only=job.config.get("forgiven_only", False),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        # Export to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"ppp_recipients_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            # Calculate stats
+            total_loans = sum(p.raw_data.get('loan_amount', 0) for p in prospects)
+            avg_loan = total_loans / len(prospects) if prospects else 0
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len([p for p in prospects if p.raw_data.get('loan_amount', 0) >= 150000]),
+                "avg_score": 50,
+                "total_loan_amount": total_loans,
+                "avg_loan_amount": round(avg_loan, 2)
+            }
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_ca_contractors_job(job: ProspectorJob):
+    """Run a California contractors prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting California contractor search..."
+
+        from prospector.industries.contractors_ca import CaliforniaContractorProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = CaliforniaContractorProspector()
+
+        prospects = prospector.search(
+            license_types=job.config.get("license_types"),
+            cities=job.config.get("cities"),
+            active_only=job.config.get("active_only", True),
+            has_workers_comp=job.config.get("has_workers_comp", False),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        # Export to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"ca_contractors_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len([p for p in prospects if p.phone]),
+                "avg_score": 50
+            }
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 def run_npi_lookup_job(job: ProspectorJob):
     """Run an NPI lookup job."""
     try:
@@ -733,6 +918,88 @@ def start_aviation_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_aviation_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/federal-contractors", methods=["POST"])
+def start_federal_contractors_search():
+    """Start a new federal contractors prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()] if states_str else None
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "naics_codes": data.get("naics_codes", "").split(",") if data.get("naics_codes") else None,
+        "small_business_only": data.get("small_business_only", True),
+        "active_only": data.get("active_only", True),
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_federal_contractors_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/ppp-loans", methods=["POST"])
+def start_ppp_loans_search():
+    """Start a new PPP loan recipients prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()] if states_str else None
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "min_loan_amount": float(data.get("min_loan_amount", 0)),
+        "max_loan_amount": float(data.get("max_loan_amount", 10000000)),
+        "min_jobs": int(data.get("min_jobs", 0)),
+        "forgiven_only": data.get("forgiven_only", False),
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_ppp_loans_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/ca-contractors", methods=["POST"])
+def start_ca_contractors_search():
+    """Start a new California contractors prospect search job."""
+    data = request.json or {}
+
+    license_types_str = data.get("license_types", "")
+    license_types = [lt.strip() for lt in license_types_str.split(",") if lt.strip()] if license_types_str else None
+
+    cities_str = data.get("cities", "")
+    cities = [c.strip() for c in cities_str.split(",") if c.strip()] if cities_str else None
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "license_types": license_types,
+        "cities": cities,
+        "active_only": data.get("active_only", True),
+        "has_workers_comp": data.get("has_workers_comp", False),
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_ca_contractors_job, args=(job,))
     thread.daemon = True
     thread.start()
 
