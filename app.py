@@ -1083,6 +1083,400 @@ def start_restaurants_search():
     return jsonify({"job_id": job_id})
 
 
+# =============================================================================
+# Enrichment API Endpoints
+# =============================================================================
+
+def run_enrichment_job(job: "ProspectorJob"):
+    """Run contact enrichment job in background."""
+    try:
+        from prospector.core.contact_enrichment import ContactEnricher
+
+        job.status = "running"
+        job.progress = 10
+        job.progress_message = "Initializing enrichment..."
+
+        company_name = job.config.get("company_name", "")
+        domain = job.config.get("domain")
+        city = job.config.get("city")
+        state = job.config.get("state")
+        phone = job.config.get("phone")
+        providers = job.config.get("providers")
+
+        job.progress = 30
+        job.progress_message = "Querying enrichment sources..."
+
+        enricher = ContactEnricher(providers=providers)
+        contact_info = enricher.enrich(
+            company_name=company_name,
+            domain=domain,
+            city=city,
+            state=state,
+            phone=phone
+        )
+
+        job.progress = 90
+        job.progress_message = "Processing results..."
+
+        # Convert to serializable dict
+        result = {
+            "primary_email": contact_info.primary_email,
+            "email_confidence": contact_info.email_confidence,
+            "emails": contact_info.emails[:5],  # Top 5
+            "primary_phone": contact_info.primary_phone,
+            "phone_type": contact_info.phone_type,
+            "phones": contact_info.phones[:3],  # Top 3
+            "linkedin_url": contact_info.linkedin_company_url,
+            "company_website": contact_info.company_website,
+            "company_description": contact_info.company_description,
+            "company_industry": contact_info.company_industry,
+            "employee_count_range": contact_info.employee_count_range,
+            "annual_revenue_range": contact_info.annual_revenue_range,
+            "decision_makers": contact_info.decision_makers[:5],  # Top 5
+            "social_profiles": contact_info.social_profiles,
+            "sources_used": contact_info.sources_used,
+            "confidence_score": contact_info.confidence_score
+        }
+
+        job.result = result
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = "Enrichment complete"
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.progress_message = f"Error: {str(e)}"
+
+
+def run_funding_signals_job(job: "ProspectorJob"):
+    """Run funding signals detection job in background."""
+    try:
+        from prospector.core.funding_signals import FundingSignalAnalyzer
+
+        job.status = "running"
+        job.progress = 10
+        job.progress_message = "Initializing signal detection..."
+
+        company_name = job.config.get("company_name", "")
+        state = job.config.get("state")
+        industry = job.config.get("industry")
+        detectors = job.config.get("detectors")
+
+        job.progress = 30
+        job.progress_message = "Analyzing funding signals..."
+
+        analyzer = FundingSignalAnalyzer(detectors=detectors)
+        report = analyzer.analyze(
+            company_name=company_name,
+            state=state,
+            industry=industry
+        )
+
+        job.progress = 90
+        job.progress_message = "Processing results..."
+
+        # Convert to serializable dict
+        result = {
+            "signals": [
+                {
+                    "signal_type": s.signal_type,
+                    "signal_name": s.signal_name,
+                    "description": s.description,
+                    "strength": s.strength,
+                    "score_boost": s.score_boost,
+                    "source": s.source,
+                    "metadata": s.metadata
+                }
+                for s in report.signals
+            ],
+            "total_score_boost": report.total_score_boost,
+            "funding_likelihood": report.funding_likelihood,
+            "funding_likelihood_score": report.funding_likelihood_score,
+            "recommended_timing": report.recommended_timing,
+            "recommended_products": report.recommended_products,
+            "sources_checked": report.sources_checked
+        }
+
+        job.result = result
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = "Analysis complete"
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.progress_message = f"Error: {str(e)}"
+
+
+def run_batch_enrichment_job(job: "ProspectorJob"):
+    """Run batch enrichment job in background."""
+    try:
+        from prospector.core.batch_processor import BatchProcessor, BatchConfig, create_enrichment_processor
+        from prospector.core.contact_enrichment import ContactEnricher
+        from prospector.core.funding_signals import FundingSignalAnalyzer
+        import pandas as pd
+
+        job.status = "running"
+        job.progress = 5
+        job.progress_message = "Loading data..."
+
+        input_file = job.config.get("input_file")
+        enrich_contacts = job.config.get("enrich_contacts", True)
+        detect_signals = job.config.get("detect_funding_signals", False)
+        max_workers = job.config.get("max_workers", 5)
+
+        # Load input data
+        df = pd.read_csv(input_file)
+        records = df.to_dict('records')
+
+        job.progress = 10
+        job.progress_message = f"Processing {len(records)} records..."
+
+        # Setup enrichers
+        contact_enricher = ContactEnricher() if enrich_contacts else None
+        signal_analyzer = FundingSignalAnalyzer() if detect_signals else None
+
+        # Create processor
+        processor_func = create_enrichment_processor(contact_enricher, signal_analyzer)
+
+        # Output file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = str(OUTPUT_DIR / f"enriched_{timestamp}.csv")
+
+        # Process with progress updates
+        config = BatchConfig(
+            max_workers=max_workers,
+            checkpoint_interval=25
+        )
+
+        processor = BatchProcessor(config)
+
+        def progress_callback(progress):
+            pct = int((progress.completed / progress.total) * 80) + 10 if progress.total > 0 else 10
+            job.progress = pct
+            job.progress_message = f"Processed {progress.completed}/{progress.total} records..."
+
+        result = processor.process(
+            records=records,
+            processor_func=processor_func,
+            output_file=output_file,
+            progress_callback=progress_callback
+        )
+
+        job.progress = 95
+        job.progress_message = "Finalizing..."
+
+        # Store results
+        job.output_file = Path(output_file).name
+        if result.hot_file:
+            job.hot_file = Path(result.hot_file).name
+
+        job.stats = {
+            "total": result.progress.total,
+            "successful": result.progress.successful,
+            "failed": result.progress.failed,
+            "processing_time": result.summary.get("processing_time", 0)
+        }
+
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = f"Enriched {result.progress.successful} records"
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.progress_message = f"Error: {str(e)}"
+
+
+@app.route("/api/enrich", methods=["POST"])
+def enrich_company():
+    """
+    Enrich a single company with contact data.
+
+    Request body:
+    {
+        "company_name": "Acme Corp",
+        "domain": "acme.com",  // optional
+        "city": "Austin",      // optional
+        "state": "TX",         // optional
+        "phone": "555-1234",   // optional existing phone
+        "providers": ["hunter", "apollo", "google_places"]  // optional
+    }
+    """
+    data = request.json or {}
+
+    company_name = data.get("company_name")
+    if not company_name:
+        return jsonify({"error": "company_name is required"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "company_name": company_name,
+        "domain": data.get("domain"),
+        "city": data.get("city"),
+        "state": data.get("state"),
+        "phone": data.get("phone"),
+        "providers": data.get("providers")
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_enrichment_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/funding-signals", methods=["POST"])
+def detect_funding_signals():
+    """
+    Detect funding signals for a company.
+
+    Request body:
+    {
+        "company_name": "Acme Corp",
+        "state": "TX",         // optional
+        "industry": "trucking", // optional
+        "detectors": ["job_postings", "news", "ucc_filings"]  // optional
+    }
+    """
+    data = request.json or {}
+
+    company_name = data.get("company_name")
+    if not company_name:
+        return jsonify({"error": "company_name is required"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "company_name": company_name,
+        "state": data.get("state"),
+        "industry": data.get("industry"),
+        "detectors": data.get("detectors")
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_funding_signals_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/enrich-batch", methods=["POST"])
+def enrich_batch():
+    """
+    Enrich a batch of records from an uploaded CSV file.
+
+    Request: multipart/form-data with:
+    - file: CSV file to enrich
+    - enrich_contacts: true/false (default: true)
+    - detect_funding_signals: true/false (default: false)
+    - max_workers: number of parallel workers (default: 5)
+    """
+    if 'file' not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files['file']
+    if not file.filename or not file.filename.endswith('.csv'):
+        return jsonify({"error": "Please upload a CSV file"}), 400
+
+    # Save uploaded file
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    input_filename = f"upload_{timestamp}.csv"
+    input_path = OUTPUT_DIR / input_filename
+    file.save(str(input_path))
+
+    enrich_contacts = request.form.get('enrich_contacts', 'true').lower() == 'true'
+    detect_signals = request.form.get('detect_funding_signals', 'false').lower() == 'true'
+    max_workers = int(request.form.get('max_workers', 5))
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "input_file": str(input_path),
+        "enrich_contacts": enrich_contacts,
+        "detect_funding_signals": detect_signals,
+        "max_workers": max_workers
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_batch_enrichment_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/enrichment-config", methods=["GET"])
+def get_enrichment_config():
+    """Get available enrichment providers and their configuration status."""
+    import os
+
+    providers = {
+        "hunter": {
+            "name": "Hunter.io",
+            "description": "Email finder and verifier",
+            "configured": bool(os.environ.get('HUNTER_API_KEY')),
+            "capabilities": ["email", "email_verification"]
+        },
+        "apollo": {
+            "name": "Apollo.io",
+            "description": "Contact database with LinkedIn data",
+            "configured": bool(os.environ.get('APOLLO_API_KEY')),
+            "capabilities": ["email", "phone", "linkedin", "decision_makers"]
+        },
+        "google_places": {
+            "name": "Google Places",
+            "description": "Business phone numbers and details",
+            "configured": bool(os.environ.get('GOOGLE_PLACES_API_KEY')),
+            "capabilities": ["phone", "website", "address"]
+        },
+        "clearbit": {
+            "name": "Clearbit",
+            "description": "Company enrichment",
+            "configured": bool(os.environ.get('CLEARBIT_API_KEY')),
+            "capabilities": ["company_data", "social_profiles"]
+        },
+        "proxycurl": {
+            "name": "Proxycurl",
+            "description": "LinkedIn profile data",
+            "configured": bool(os.environ.get('PROXYCURL_API_KEY')),
+            "capabilities": ["linkedin", "decision_makers"]
+        }
+    }
+
+    signal_detectors = {
+        "job_postings": {
+            "name": "Job Postings",
+            "description": "Detect hiring patterns indicating growth",
+            "configured": True  # Uses public data
+        },
+        "news": {
+            "name": "News Monitoring",
+            "description": "Detect expansion and funding news",
+            "configured": bool(os.environ.get('NEWS_API_KEY'))
+        },
+        "ucc_filings": {
+            "name": "UCC Filings",
+            "description": "Detect expiring equipment liens",
+            "configured": bool(os.environ.get('UCC_API_KEY'))
+        },
+        "sba_loans": {
+            "name": "SBA Loan History",
+            "description": "Identify previous loan recipients",
+            "configured": True  # Uses public data
+        }
+    }
+
+    return jsonify({
+        "contact_providers": providers,
+        "signal_detectors": signal_detectors
+    })
+
+
 @app.route("/api/job/<job_id>")
 def get_job_status(job_id):
     """Get job status."""
