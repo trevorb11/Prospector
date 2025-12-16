@@ -2,7 +2,16 @@
 
 ## Overview
 
-Prospector is a lead generation and scoring tool designed for merchant cash advance (MCA), equipment financing, and business loan providers. It finds and evaluates business prospects across multiple industries using public data sources. The primary use case is the trucking industry via FMCSA data, with extensibility built in for healthcare, aviation, and construction industries.
+Prospector is a lead generation and scoring tool designed for merchant cash advance (MCA), equipment financing, and business loan providers. It finds and evaluates business prospects across multiple industries using public data sources.
+
+**Supported Industries:**
+- Trucking (FMCSA) - Motor carriers with truck/driver counts
+- Healthcare (NPI Registry) - Medical providers and practices  
+- Aviation (FAA Registry) - Aircraft owners and fleet operators
+- Construction (OpenCorporates) - General contractors
+- Federal Contractors (SAM.gov) - Government contractors with steady cash flow
+- PPP Loan Recipients (SBA) - Businesses that used pandemic financing
+- California Contractors (CSLB) - Licensed CA contractors with equipment needs
 
 The application provides three interfaces: a web UI (Flask-based), a CLI (Click-based), and programmatic API access. It's optimized for deployment on Replit.
 
@@ -23,8 +32,13 @@ The codebase follows a modular architecture with clear separation of concerns:
 
 - **Industry Modules** (`prospector/industries/`): Industry-specific implementations
   - Each industry inherits from `IndustryProspector`
-  - Trucking is fully implemented using FMCSA/Socrata API
-  - Healthcare, aviation, and construction have placeholder implementations
+  - Trucking: FMCSA/Socrata API for motor carriers
+  - Healthcare: NPI Registry for medical providers
+  - Aviation: FAA Registry for aircraft owners
+  - Construction: OpenCorporates for general contractors
+  - Federal Contractors: SAM.gov API for government contractors
+  - PPP Loans: SBA public data for PPP loan recipients
+  - CA Contractors: CSLB for California licensed contractors
 
 - **Exporters** (`prospector/exporters/`): Output format handlers
   - CSV and Excel export with automatic "hot prospects" filtering
@@ -69,6 +83,12 @@ The Flask app uses a simple in-memory job store with threading for background pr
 
 - **State Contractor Databases** (construction module): Varies by state, most require web scraping. Placeholder implementation.
 
+- **SAM.gov Entity API** (federal contractors module): Government contractor registrations. Requires free API key (SAM_API_KEY environment variable).
+
+- **SBA PPP Loan Data** (PPP loans module): Public FOIA data for Paycheck Protection Program loans. No authentication required; downloads ~100MB CSV file (cached locally).
+
+- **California CSLB** (CA contractors module): Contractor State License Board data. Public data portal; no authentication required.
+
 ### Python Dependencies
 
 - **Web**: Flask, Gunicorn
@@ -84,4 +104,5 @@ Output files are written to the `output/` directory. This directory is created a
 ### Environment Variables
 
 - `SOCRATA_APP_TOKEN`: Optional token for higher FMCSA API rate limits
+- `SAM_API_KEY`: Required for Federal Contractors search (free from SAM.gov)
 - `SECRET_KEY`: Flask session key (defaults to a placeholder value)
