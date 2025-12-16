@@ -244,6 +244,21 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="federal-tab" data-bs-toggle="pill" data-bs-target="#federal" type="button">
+                    <i class="bi bi-bank me-1"></i> Federal
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ppp-tab" data-bs-toggle="pill" data-bs-target="#ppp" type="button">
+                    <i class="bi bi-cash-stack me-1"></i> PPP Loans
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cacontractors-tab" data-bs-toggle="pill" data-bs-target="#cacontractors" type="button">
+                    <i class="bi bi-tools me-1"></i> CA Contractors
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
                     <i class="bi bi-folder me-1"></i> Downloads
                 </button>
@@ -823,6 +838,405 @@
                                 <i class="bi bi-airplane display-4 text-muted"></i>
                                 <h5 class="mt-3 text-muted">Aircraft Owner Search</h5>
                                 <p class="text-muted">Search the FAA Registry for aircraft owners, fleet operators, and aviation businesses.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Federal Contractors Tab -->
+            <div class="tab-pane fade" id="federal" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="federalForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States (Optional)</label>
+                                        <input type="text" class="form-control" id="federalStates"
+                                               value=""
+                                               placeholder="e.g., FL,GA,TX (leave blank for all)">
+                                        <small class="text-muted">Comma-separated state abbreviations</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">NAICS Codes (Optional)</label>
+                                        <input type="text" class="form-control" id="federalNaics"
+                                               value=""
+                                               placeholder="e.g., 484110,238220">
+                                        <small class="text-muted">Industry classification codes</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="smallBusinessOnly" checked>
+                                            <label class="form-check-label" for="smallBusinessOnly">
+                                                Small businesses only
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="federalLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startFederalBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search Federal Contractors
+                                    </button>
+                                </form>
+
+                                <div class="alert alert-warning mt-3 small">
+                                    <i class="bi bi-key me-1"></i>
+                                    <strong>API Key Required:</strong> Federal contractor search requires a SAM.gov API key. Set SAM_API_KEY in environment.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About Federal Data
+                            </div>
+                            <div class="card-body small">
+                                <p><strong>Source:</strong> SAM.gov (System for Award Management)</p>
+                                <p><strong>Coverage:</strong> All US government contractors</p>
+                                <p><strong>Data includes:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Company name and address</li>
+                                    <li>Contact information (phone, email)</li>
+                                    <li>Business type and size</li>
+                                    <li>NAICS industry codes</li>
+                                    <li>Registration status</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="federalEmpty" class="text-center py-5 text-muted">
+                            <i class="bi bi-bank display-1"></i>
+                            <h4 class="mt-3">Find Federal Contractors</h4>
+                            <p>Search SAM.gov for businesses registered as government contractors.</p>
+                        </div>
+
+                        <div id="federalProgress" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Searching Federal Contractors...</h5>
+                            <div class="progress mt-3 mx-auto" style="max-width: 400px;">
+                                <div class="progress-bar" id="federalProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-muted mt-2" id="federalProgressMessage">Starting...</p>
+                        </div>
+
+                        <div id="federalResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-primary" id="federalTotalCount">0</h2>
+                                            <p class="text-muted mb-0">Total Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-success" id="federalHotCount">0</h2>
+                                            <p class="text-muted mb-0">With Contact Info</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-info" id="federalAvgScore">0</h2>
+                                            <p class="text-muted mb-0">Avg Score</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="btn btn-success" id="federalDownloadAll">
+                                    <i class="bi bi-download me-1"></i> Download All Results
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PPP Loans Tab -->
+            <div class="tab-pane fade" id="ppp" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="pppForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="pppStates"
+                                               value="FL,TX,CA"
+                                               placeholder="e.g., FL,GA,TX">
+                                        <small class="text-muted">Comma-separated state abbreviations</small>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Min Loan ($)</label>
+                                            <input type="number" class="form-control" id="minLoanAmount" value="150000" min="0">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Max Loan ($)</label>
+                                            <input type="number" class="form-control" id="maxLoanAmount" value="10000000" min="0">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Min Jobs Reported</label>
+                                        <input type="number" class="form-control" id="minJobs" value="5" min="0">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="forgivenOnly">
+                                            <label class="form-check-label" for="forgivenOnly">
+                                                Forgiven loans only (business survived)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="pppLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                            <option value="5000">5,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startPPPBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search PPP Recipients
+                                    </button>
+                                </form>
+
+                                <div class="alert alert-info mt-3 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Note:</strong> First search downloads PPP data (~100MB). May take 1-2 minutes.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About PPP Data
+                            </div>
+                            <div class="card-body small">
+                                <p><strong>Source:</strong> SBA Public FOIA Data</p>
+                                <p><strong>Coverage:</strong> All PPP loan recipients (2020-2021)</p>
+                                <p><strong>Data includes:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Business name and address</li>
+                                    <li>Loan amount and forgiveness status</li>
+                                    <li>Jobs reported</li>
+                                    <li>NAICS industry code</li>
+                                    <li>Business type</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="pppEmpty" class="text-center py-5 text-muted">
+                            <i class="bi bi-cash-stack display-1"></i>
+                            <h4 class="mt-3">Find PPP Loan Recipients</h4>
+                            <p>Search businesses that received Paycheck Protection Program loans.</p>
+                        </div>
+
+                        <div id="pppProgress" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Searching PPP Recipients...</h5>
+                            <div class="progress mt-3 mx-auto" style="max-width: 400px;">
+                                <div class="progress-bar" id="pppProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-muted mt-2" id="pppProgressMessage">Starting...</p>
+                        </div>
+
+                        <div id="pppResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-primary" id="pppTotalCount">0</h2>
+                                            <p class="text-muted mb-0">Total Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-success" id="pppHotCount">0</h2>
+                                            <p class="text-muted mb-0">Loans $150K+</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-info" id="pppAvgLoan">$0</h2>
+                                            <p class="text-muted mb-0">Avg Loan Amount</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="btn btn-success" id="pppDownloadAll">
+                                    <i class="bi bi-download me-1"></i> Download All Results
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CA Contractors Tab -->
+            <div class="tab-pane fade" id="cacontractors" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="caContractorsForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">License Types (Optional)</label>
+                                        <input type="text" class="form-control" id="caLicenseTypes"
+                                               value=""
+                                               placeholder="e.g., B,C-10,C-36">
+                                        <small class="text-muted">B=General, C-10=Electrical, C-36=Plumbing, etc.</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="caCities"
+                                               value=""
+                                               placeholder="e.g., Los Angeles,San Diego">
+                                        <small class="text-muted">Comma-separated city names</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="hasWorkersComp">
+                                            <label class="form-check-label" for="hasWorkersComp">
+                                                With workers' comp only (has employees)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="caLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startCAContractorsBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search CA Contractors
+                                    </button>
+                                </form>
+
+                                <div class="alert alert-info mt-3 small">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    <strong>Note:</strong> CSLB data requires manual download from their portal. Contact support for bulk data access.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About CSLB Data
+                            </div>
+                            <div class="card-body small">
+                                <p><strong>Source:</strong> CA Contractors State License Board</p>
+                                <p><strong>Coverage:</strong> ~285,000 licensed CA contractors</p>
+                                <p><strong>Data includes:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Business name and address</li>
+                                    <li>License holder/owner name</li>
+                                    <li>Phone number</li>
+                                    <li>License type and status</li>
+                                    <li>Workers' comp insurance</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="caEmpty" class="text-center py-5 text-muted">
+                            <i class="bi bi-tools display-1"></i>
+                            <h4 class="mt-3">Find California Contractors</h4>
+                            <p>Search CSLB for licensed contractors in California.</p>
+                        </div>
+
+                        <div id="caProgress" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Searching CA Contractors...</h5>
+                            <div class="progress mt-3 mx-auto" style="max-width: 400px;">
+                                <div class="progress-bar" id="caProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-muted mt-2" id="caProgressMessage">Starting...</p>
+                        </div>
+
+                        <div id="caResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-primary" id="caTotalCount">0</h2>
+                                            <p class="text-muted mb-0">Total Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-success" id="caHotCount">0</h2>
+                                            <p class="text-muted mb-0">With Phone</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-info" id="caAvgScore">0</h2>
+                                            <p class="text-muted mb-0">Avg Score</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="btn btn-success" id="caDownloadAll">
+                                    <i class="bi bi-download me-1"></i> Download All Results
+                                </a>
                             </div>
                         </div>
                     </div>
