@@ -1947,6 +1947,259 @@
             }
         }
 
+        // Federal Contractors Search
+        let federalJobId = null;
+        let federalPollInterval = null;
+
+        document.getElementById('federalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('federalStates').value,
+                naics_codes: document.getElementById('federalNaics').value,
+                small_business_only: document.getElementById('smallBusinessOnly').checked,
+                active_only: true,
+                limit: document.getElementById('federalLimit').value
+            };
+
+            document.getElementById('federalEmpty').style.display = 'none';
+            document.getElementById('federalResults').style.display = 'none';
+            document.getElementById('federalProgress').style.display = 'block';
+            document.getElementById('startFederalBtn').disabled = true;
+            document.getElementById('startFederalBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/federal-contractors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                federalJobId = result.job_id;
+
+                federalPollInterval = setInterval(pollFederalStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetFederalForm();
+            }
+        });
+
+        async function pollFederalStatus() {
+            try {
+                const response = await fetch(`/api/job/${federalJobId}`);
+                const job = await response.json();
+
+                document.getElementById('federalProgressBar').style.width = job.progress + '%';
+                document.getElementById('federalProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(federalPollInterval);
+                    showFederalResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(federalPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetFederalForm();
+                }
+            } catch (error) {
+                clearInterval(federalPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetFederalForm();
+            }
+        }
+
+        function resetFederalForm() {
+            document.getElementById('federalProgress').style.display = 'none';
+            document.getElementById('federalEmpty').style.display = 'block';
+            document.getElementById('startFederalBtn').disabled = false;
+            document.getElementById('startFederalBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Federal Contractors';
+        }
+
+        function showFederalResults(job) {
+            document.getElementById('federalProgress').style.display = 'none';
+            document.getElementById('federalResults').style.display = 'block';
+            document.getElementById('startFederalBtn').disabled = false;
+            document.getElementById('startFederalBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Federal Contractors';
+
+            const stats = job.stats || {};
+            document.getElementById('federalTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('federalHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('federalAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('federalDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+        }
+
+        // PPP Loans Search
+        let pppJobId = null;
+        let pppPollInterval = null;
+
+        document.getElementById('pppForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('pppStates').value,
+                min_loan_amount: document.getElementById('minLoanAmount').value,
+                max_loan_amount: document.getElementById('maxLoanAmount').value,
+                min_jobs: document.getElementById('minJobs').value,
+                forgiven_only: document.getElementById('forgivenOnly').checked,
+                limit: document.getElementById('pppLimit').value
+            };
+
+            document.getElementById('pppEmpty').style.display = 'none';
+            document.getElementById('pppResults').style.display = 'none';
+            document.getElementById('pppProgress').style.display = 'block';
+            document.getElementById('startPPPBtn').disabled = true;
+            document.getElementById('startPPPBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/ppp-loans', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                pppJobId = result.job_id;
+
+                pppPollInterval = setInterval(pollPPPStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetPPPForm();
+            }
+        });
+
+        async function pollPPPStatus() {
+            try {
+                const response = await fetch(`/api/job/${pppJobId}`);
+                const job = await response.json();
+
+                document.getElementById('pppProgressBar').style.width = job.progress + '%';
+                document.getElementById('pppProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(pppPollInterval);
+                    showPPPResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(pppPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetPPPForm();
+                }
+            } catch (error) {
+                clearInterval(pppPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetPPPForm();
+            }
+        }
+
+        function resetPPPForm() {
+            document.getElementById('pppProgress').style.display = 'none';
+            document.getElementById('pppEmpty').style.display = 'block';
+            document.getElementById('startPPPBtn').disabled = false;
+            document.getElementById('startPPPBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search PPP Recipients';
+        }
+
+        function showPPPResults(job) {
+            document.getElementById('pppProgress').style.display = 'none';
+            document.getElementById('pppResults').style.display = 'block';
+            document.getElementById('startPPPBtn').disabled = false;
+            document.getElementById('startPPPBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search PPP Recipients';
+
+            const stats = job.stats || {};
+            document.getElementById('pppTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('pppHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('pppAvgLoan').textContent = '$' + formatNumber(Math.round(stats.avg_loan_amount || 0));
+
+            if (job.output_file) {
+                document.getElementById('pppDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+        }
+
+        // CA Contractors Search
+        let caJobId = null;
+        let caPollInterval = null;
+
+        document.getElementById('caContractorsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                license_types: document.getElementById('caLicenseTypes').value,
+                cities: document.getElementById('caCities').value,
+                active_only: true,
+                has_workers_comp: document.getElementById('hasWorkersComp').checked,
+                limit: document.getElementById('caLimit').value
+            };
+
+            document.getElementById('caEmpty').style.display = 'none';
+            document.getElementById('caResults').style.display = 'none';
+            document.getElementById('caProgress').style.display = 'block';
+            document.getElementById('startCAContractorsBtn').disabled = true;
+            document.getElementById('startCAContractorsBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/ca-contractors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                caJobId = result.job_id;
+
+                caPollInterval = setInterval(pollCAStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetCAForm();
+            }
+        });
+
+        async function pollCAStatus() {
+            try {
+                const response = await fetch(`/api/job/${caJobId}`);
+                const job = await response.json();
+
+                document.getElementById('caProgressBar').style.width = job.progress + '%';
+                document.getElementById('caProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(caPollInterval);
+                    showCAResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(caPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetCAForm();
+                }
+            } catch (error) {
+                clearInterval(caPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetCAForm();
+            }
+        }
+
+        function resetCAForm() {
+            document.getElementById('caProgress').style.display = 'none';
+            document.getElementById('caEmpty').style.display = 'block';
+            document.getElementById('startCAContractorsBtn').disabled = false;
+            document.getElementById('startCAContractorsBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search CA Contractors';
+        }
+
+        function showCAResults(job) {
+            document.getElementById('caProgress').style.display = 'none';
+            document.getElementById('caResults').style.display = 'block';
+            document.getElementById('startCAContractorsBtn').disabled = false;
+            document.getElementById('startCAContractorsBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search CA Contractors';
+
+            const stats = job.stats || {};
+            document.getElementById('caTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('caHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('caAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('caDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+        }
+
         // Initial load
         loadFiles();
         loadMatchFiles();
