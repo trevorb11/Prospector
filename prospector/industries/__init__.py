@@ -7,5 +7,6 @@ for that industry's data sources.
 """
 
 from .trucking import TruckingProspector
+from .health_dept import HealthDeptProspector
 
-__all__ = ["TruckingProspector"]
+__all__ = ["TruckingProspector", "HealthDeptProspector"]
