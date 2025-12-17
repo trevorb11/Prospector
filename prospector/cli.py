@@ -482,6 +482,243 @@ def aviation(
 
 
 @cli.command()
+@click.option(
+    "--states", "-s",
+    default="FL,TX",
+    help="Comma-separated list of state abbreviations (FL, TX, NY, IL supported)",
+)
+@click.option(
+    "--include-cities/--states-only",
+    default=True,
+    help="Include city-level data (NYC, Chicago) for NY and IL states",
+)
+@click.option(
+    "--active-only/--include-inactive",
+    default=True,
+    help="Only include businesses with active licenses",
+)
+@click.option(
+    "--output", "-o",
+    default=None,
+    help="Output file path (default: health_dept_prospects_YYYYMMDD.csv)",
+)
+@click.option(
+    "--format", "-f",
+    type=click.Choice(["csv", "excel"]),
+    default="csv",
+    help="Output format",
+)
+@click.option(
+    "--hot-threshold",
+    default=70,
+    type=int,
+    help="Score threshold for hot prospects",
+)
+@click.option(
+    "--app-token",
+    envvar="SOCRATA_APP_TOKEN",
+    default=None,
+    help="Socrata API app token for higher rate limits",
+)
+def health_dept(
+    states: str,
+    include_cities: bool,
+    active_only: bool,
+    output: Optional[str],
+    format: str,
+    hot_threshold: int,
+    app_token: Optional[str],
+):
+    """
+    Find restaurant/bar prospects from health department filings.
+
+    Pulls food service establishment data from state and local health
+    department databases. These businesses file for permits and inspections,
+    providing verified business information.
+
+    Supported data sources:
+    - Florida DBPR (FL)
+    - Texas DSHS (TX)
+    - NYC DOHMH (NY with --include-cities)
+    - Chicago CDPH (IL with --include-cities)
+
+    Examples:
+
+        # Basic usage - Florida and Texas
+        prospector health-dept
+
+        # Specific states
+        prospector health-dept -s FL,TX,NY,IL
+
+        # States only, no city-level data
+        prospector health-dept -s FL,TX --states-only
+
+        # Include inactive/expired licenses
+        prospector health-dept --include-inactive
+
+        # Export to Excel
+        prospector health-dept -f excel -o restaurants.xlsx
+    """
+    from prospector.industries.health_dept import HealthDeptProspector
+    from prospector.utils.display import print_banner, print_summary
+
+    print_banner(
+        "HEALTH DEPARTMENT FILINGS PROSPECT FINDER",
+        "Restaurants, Bars & Food Service"
+    )
+
+    # Parse states
+    state_list = [s.strip().upper() for s in states.split(",")]
+
+    # Build config
+    config = {
+        "target_states": state_list,
+        "include_cities": include_cities,
+        "active_only": active_only,
+        "app_token": app_token,
+    }
+
+    # Run prospector
+    prospector = HealthDeptProspector(config)
+    prospects = prospector.run(score=True)
+
+    if not prospects:
+        click.echo("\nNo prospects found matching your criteria.")
+        return
+
+    # Print summary
+    summary = prospector.get_summary()
+    print_summary(summary, "Health Dept Filings")
+
+    # Determine output filename
+    if not output:
+        date_str = datetime.now().strftime("%Y%m%d")
+        ext = "xlsx" if format == "excel" else "csv"
+        output = f"health_dept_prospects_{date_str}.{ext}"
+
+    # Export
+    if format == "excel":
+        prospector.export_excel(output, hot_threshold=hot_threshold)
+    else:
+        prospector.export_csv(output, hot_threshold=hot_threshold)
+
+    click.echo(f"\n  Output saved to: {output}")
+
+
+@cli.command()
+@click.argument("license_number")
+@click.option(
+    "--state", "-s",
+    default="FL",
+    help="State for license lookup (FL, TX supported)",
+)
+@click.option(
+    "--app-token",
+    envvar="SOCRATA_APP_TOKEN",
+    default=None,
+    help="Socrata API app token",
+)
+def license_lookup(license_number: str, state: str, app_token: Optional[str]):
+    """
+    Look up a specific food establishment by license number.
+
+    Example:
+
+        prospector license-lookup SEA1234567 -s FL
+    """
+    from prospector.industries.health_dept import lookup_by_license
+
+    click.echo(f"\nLooking up license {license_number} in {state.upper()}...")
+
+    result = lookup_by_license(license_number, state=state, app_token=app_token)
+
+    if result:
+        click.echo("\n  Establishment Information:")
+        click.echo("  " + "-" * 40)
+        click.echo(f"  Business Name:   {result.get('business_name', 'N/A')}")
+        if result.get('dba_name'):
+            click.echo(f"  DBA Name:        {result.get('dba_name')}")
+        click.echo(f"  License Number:  {result.get('license_number', 'N/A')}")
+        click.echo(f"  License Type:    {result.get('license_type', 'N/A')}")
+        click.echo(f"  Status:          {result.get('status', 'N/A')}")
+        click.echo(f"  Address:         {result.get('address', 'N/A')}")
+        click.echo(f"  City/State:      {result.get('city', '')}, {result.get('state', '')} {result.get('zip', '')}")
+        click.echo(f"  Data Source:     {result.get('source', 'N/A')}")
+        click.echo()
+    else:
+        click.echo(f"\n  No establishment found with license: {license_number}")
+
+
+@cli.command()
+@click.argument("city")
+@click.argument("state")
+@click.option(
+    "--type", "-t",
+    "facility_type",
+    default=None,
+    help="Filter by facility type (e.g., 'restaurant', 'bar')",
+)
+@click.option(
+    "--output", "-o",
+    default=None,
+    help="Output CSV file",
+)
+@click.option(
+    "--app-token",
+    envvar="SOCRATA_APP_TOKEN",
+    default=None,
+    help="Socrata API app token",
+)
+def food_city(
+    city: str,
+    state: str,
+    facility_type: Optional[str],
+    output: Optional[str],
+    app_token: Optional[str],
+):
+    """
+    Get all food establishments in a specific city.
+
+    Good for hyper-local targeting campaigns.
+
+    Example:
+
+        prospector food-city Miami FL
+        prospector food-city Houston TX -t restaurant
+    """
+    from prospector.industries.health_dept import get_establishments_by_city
+    import pandas as pd
+
+    click.echo(f"\nFetching food establishments in {city}, {state.upper()}...")
+    if facility_type:
+        click.echo(f"  Filtering by type: {facility_type}")
+
+    results = get_establishments_by_city(
+        city=city,
+        state=state,
+        facility_type=facility_type,
+        app_token=app_token,
+    )
+
+    if results:
+        click.echo(f"\n  Found {len(results)} establishments in {city}, {state.upper()}")
+
+        if output:
+            df = pd.DataFrame(results)
+            df.to_csv(output, index=False)
+            click.echo(f"  Saved to: {output}")
+        else:
+            click.echo("\n  Top 10 establishments:\n")
+            for i, est in enumerate(results[:10], 1):
+                click.echo(f"  {i}. {est.get('business_name', 'N/A')}")
+                click.echo(f"     Type: {est.get('license_type', 'N/A')} | Status: {est.get('status', 'N/A')}")
+                click.echo(f"     {est.get('address', '')}, {est.get('city', '')}")
+                click.echo()
+    else:
+        click.echo(f"\n  No establishments found in {city}, {state.upper()}")
+
+
+@cli.command()
 @click.argument("npi_number")
 def npi_lookup(npi_number: str):
     """
