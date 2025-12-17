@@ -234,6 +234,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="health-dept-tab" data-bs-toggle="pill" data-bs-target="#health-dept" type="button">
+                    <i class="bi bi-shop me-1"></i> Health Dept
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
                     <i class="bi bi-folder me-1"></i> Downloads
                 </button>
@@ -555,6 +560,178 @@
                                         <span id="matchErrorText"></span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health Department Tab -->
+            <div class="tab-pane fade" id="health-dept" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="healthDeptForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Target States</label>
+                                        <input type="text" class="form-control" id="healthDeptStates"
+                                               value="FL,TX"
+                                               placeholder="e.g., FL,TX,NY,IL">
+                                        <small class="text-muted">FL, TX, NY (NYC), IL (Chicago) supported</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="healthDeptIncludeCities" checked>
+                                            <label class="form-check-label" for="healthDeptIncludeCities">
+                                                Include city data (NYC, Chicago)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="healthDeptActiveOnly" checked>
+                                            <label class="form-check-label" for="healthDeptActiveOnly">
+                                                Active licenses only
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records/Source</label>
+                                        <select class="form-select" id="healthDeptMaxRecords">
+                                            <option value="1000">1,000 (Quick)</option>
+                                            <option value="5000">5,000</option>
+                                            <option value="10000" selected>10,000 (Standard)</option>
+                                            <option value="25000">25,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startHealthDeptBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Find Restaurants/Bars
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Quick Lookup Card -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-search me-2"></i>License Lookup
+                            </div>
+                            <div class="card-body">
+                                <form id="licenseLookupForm">
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="licenseNumber"
+                                               placeholder="License number">
+                                    </div>
+                                    <div class="mb-3">
+                                        <select class="form-select" id="licenseState">
+                                            <option value="FL">Florida</option>
+                                            <option value="TX">Texas</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-primary w-100" id="licenseLookupBtn">
+                                        <i class="bi bi-search me-1"></i> Look Up
+                                    </button>
+                                </form>
+                                <div id="licenseLookupResults" class="mt-3"></div>
+                            </div>
+                        </div>
+
+                        <!-- Food City Search -->
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-geo-alt me-2"></i>City Search
+                            </div>
+                            <div class="card-body">
+                                <form id="foodCityForm">
+                                    <div class="row mb-3">
+                                        <div class="col-8">
+                                            <input type="text" class="form-control" id="foodCityName"
+                                                   placeholder="City name">
+                                        </div>
+                                        <div class="col-4">
+                                            <input type="text" class="form-control" id="foodCityState"
+                                                   placeholder="State" maxlength="2">
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <input type="text" class="form-control" id="foodFacilityType"
+                                               placeholder="Type filter (optional, e.g., restaurant)">
+                                    </div>
+                                    <button type="submit" class="btn btn-outline-primary w-100" id="foodCityBtn">
+                                        <i class="bi bi-search me-1"></i> Search City
+                                    </button>
+                                </form>
+                                <div id="foodCityResults" class="mt-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <!-- Progress Section -->
+                        <div class="card mb-4" id="healthDeptProgress" style="display: none;">
+                            <div class="card-body">
+                                <h5><i class="bi bi-hourglass-split me-2"></i>Search Progress</h5>
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" id="healthDeptProgressBar" style="width: 0%"></div>
+                                </div>
+                                <p class="text-muted mb-0" id="healthDeptProgressMessage">Initializing...</p>
+                            </div>
+                        </div>
+
+                        <!-- Results Section -->
+                        <div id="healthDeptResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-primary" id="healthDeptTotalCount">0</h2>
+                                        <p>Total Prospects</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-danger" id="healthDeptHotCount">0</h2>
+                                        <p>Hot (70+)</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-warning" id="healthDeptMediumCount">0</h2>
+                                        <p>Medium</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card">
+                                        <h2 class="text-success" id="healthDeptPhoneCount">0</h2>
+                                        <p>With Phone</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-download me-2"></i>Download Results</span>
+                                </div>
+                                <div class="card-body">
+                                    <div id="healthDeptDownloadButtons"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Initial State -->
+                        <div class="card" id="healthDeptInitial">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-shop display-1 text-muted mb-3"></i>
+                                <h4>Find Restaurants & Bars</h4>
+                                <p class="text-muted">Search health department filing databases to find restaurants, bars, and food service establishments with verified business info.</p>
+                                <p class="text-muted small">Data sources: Florida DBPR, Texas DSHS, NYC DOHMH, Chicago CDPH</p>
                             </div>
                         </div>
                     </div>
@@ -1089,6 +1266,247 @@
                 document.getElementById('matchErrorText').textContent = error.message;
             }
         });
+
+        // Health Department Search
+        let healthDeptJobId = null;
+        let healthDeptPollInterval = null;
+
+        document.getElementById('healthDeptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                states: document.getElementById('healthDeptStates').value,
+                include_cities: document.getElementById('healthDeptIncludeCities').checked,
+                active_only: document.getElementById('healthDeptActiveOnly').checked,
+                max_records: document.getElementById('healthDeptMaxRecords').value
+            };
+
+            document.getElementById('healthDeptInitial').style.display = 'none';
+            document.getElementById('healthDeptResults').style.display = 'none';
+            document.getElementById('healthDeptProgress').style.display = 'block';
+            document.getElementById('startHealthDeptBtn').disabled = true;
+            document.getElementById('startHealthDeptBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/health-dept', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                healthDeptJobId = result.job_id;
+
+                // Start polling for status
+                healthDeptPollInterval = setInterval(pollHealthDeptStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetHealthDeptForm();
+            }
+        });
+
+        async function pollHealthDeptStatus() {
+            if (!healthDeptJobId) return;
+
+            try {
+                const response = await fetch(`/api/job/${healthDeptJobId}`);
+                const job = await response.json();
+
+                document.getElementById('healthDeptProgressBar').style.width = job.progress + '%';
+                document.getElementById('healthDeptProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(healthDeptPollInterval);
+                    showHealthDeptResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(healthDeptPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetHealthDeptForm();
+                }
+            } catch (error) {
+                console.error('Poll error:', error);
+            }
+        }
+
+        function showHealthDeptResults(job) {
+            document.getElementById('healthDeptProgress').style.display = 'none';
+            document.getElementById('healthDeptResults').style.display = 'block';
+            resetHealthDeptForm();
+
+            // Update stats
+            document.getElementById('healthDeptTotalCount').textContent = formatNumber(job.stats.total || 0);
+            document.getElementById('healthDeptHotCount').textContent = formatNumber(job.stats.hot_count || 0);
+            document.getElementById('healthDeptMediumCount').textContent = formatNumber(job.stats.medium_count || 0);
+            document.getElementById('healthDeptPhoneCount').textContent = formatNumber(job.stats.with_phone || 0);
+
+            // Download buttons
+            let buttons = '';
+            if (job.output_file) {
+                buttons += `<a href="/api/download/${job.output_file}" class="btn btn-success me-2 mb-2">
+                    <i class="bi bi-download me-1"></i> Download All Prospects (CSV)
+                </a>`;
+            }
+            if (job.hot_file) {
+                buttons += `<a href="/api/download/${job.hot_file}" class="btn btn-danger me-2 mb-2">
+                    <i class="bi bi-fire me-1"></i> Download Hot Prospects (CSV)
+                </a>`;
+            }
+            document.getElementById('healthDeptDownloadButtons').innerHTML = buttons;
+        }
+
+        function resetHealthDeptForm() {
+            document.getElementById('startHealthDeptBtn').disabled = false;
+            document.getElementById('startHealthDeptBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Find Restaurants/Bars';
+        }
+
+        // License Lookup
+        document.getElementById('licenseLookupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const licenseNumber = document.getElementById('licenseNumber').value.trim();
+            const state = document.getElementById('licenseState').value;
+            if (!licenseNumber) return;
+
+            document.getElementById('licenseLookupBtn').disabled = true;
+            document.getElementById('licenseLookupBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            document.getElementById('licenseLookupResults').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div></div>';
+
+            try {
+                const response = await fetch('/api/license-lookup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ license_number: licenseNumber, state: state })
+                });
+
+                const { job_id } = await response.json();
+
+                // Poll for result
+                const pollLicense = setInterval(async () => {
+                    const statusRes = await fetch(`/api/job/${job_id}`);
+                    const job = await statusRes.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollLicense);
+                        document.getElementById('licenseLookupBtn').disabled = false;
+                        document.getElementById('licenseLookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+
+                        if (job.result) {
+                            showLicenseLookupResult(job.result);
+                        } else {
+                            document.getElementById('licenseLookupResults').innerHTML =
+                                '<div class="alert alert-warning alert-sm py-2">No establishment found.</div>';
+                        }
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollLicense);
+                        document.getElementById('licenseLookupBtn').disabled = false;
+                        document.getElementById('licenseLookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+                        document.getElementById('licenseLookupResults').innerHTML =
+                            `<div class="alert alert-danger alert-sm py-2">Error: ${job.error}</div>`;
+                    }
+                }, 500);
+            } catch (error) {
+                document.getElementById('licenseLookupBtn').disabled = false;
+                document.getElementById('licenseLookupBtn').innerHTML = '<i class="bi bi-search me-1"></i> Look Up';
+                document.getElementById('licenseLookupResults').innerHTML =
+                    `<div class="alert alert-danger alert-sm py-2">Error: ${error.message}</div>`;
+            }
+        });
+
+        function showLicenseLookupResult(data) {
+            const html = `
+                <div class="result-card p-3" style="font-size: 0.85rem;">
+                    <strong>${data.business_name || 'N/A'}</strong>
+                    ${data.dba_name ? `<br><small class="text-muted">DBA: ${data.dba_name}</small>` : ''}
+                    <hr class="my-2">
+                    <div><strong>License:</strong> ${data.license_number || 'N/A'}</div>
+                    <div><strong>Type:</strong> ${data.license_type || 'N/A'}</div>
+                    <div><strong>Status:</strong> <span class="badge ${data.status === 'ACTIVE' ? 'bg-success' : 'bg-secondary'}">${data.status || 'N/A'}</span></div>
+                    <div><strong>Address:</strong> ${data.address || 'N/A'}</div>
+                    <div><strong>City:</strong> ${data.city || ''}, ${data.state || ''} ${data.zip || ''}</div>
+                    <div class="text-muted mt-1"><small>Source: ${data.source || 'N/A'}</small></div>
+                </div>
+            `;
+            document.getElementById('licenseLookupResults').innerHTML = html;
+        }
+
+        // Food City Search
+        document.getElementById('foodCityForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const city = document.getElementById('foodCityName').value.trim();
+            const state = document.getElementById('foodCityState').value.trim().toUpperCase();
+            const facilityType = document.getElementById('foodFacilityType').value.trim();
+            if (!city || !state) return;
+
+            document.getElementById('foodCityBtn').disabled = true;
+            document.getElementById('foodCityBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            document.getElementById('foodCityResults').innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div></div>';
+
+            try {
+                const response = await fetch('/api/food-city', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city: city,
+                        state: state,
+                        facility_type: facilityType || null
+                    })
+                });
+
+                const { job_id } = await response.json();
+
+                const pollFoodCity = setInterval(async () => {
+                    const statusRes = await fetch(`/api/job/${job_id}`);
+                    const job = await statusRes.json();
+
+                    if (job.status === 'completed') {
+                        clearInterval(pollFoodCity);
+                        document.getElementById('foodCityBtn').disabled = false;
+                        document.getElementById('foodCityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search City';
+                        showFoodCityResults(job);
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollFoodCity);
+                        document.getElementById('foodCityBtn').disabled = false;
+                        document.getElementById('foodCityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search City';
+                        document.getElementById('foodCityResults').innerHTML =
+                            `<div class="alert alert-danger alert-sm py-2">Error: ${job.error}</div>`;
+                    }
+                }, 500);
+            } catch (error) {
+                document.getElementById('foodCityBtn').disabled = false;
+                document.getElementById('foodCityBtn').innerHTML = '<i class="bi bi-search me-1"></i> Search City';
+                document.getElementById('foodCityResults').innerHTML =
+                    `<div class="alert alert-danger alert-sm py-2">Error: ${error.message}</div>`;
+            }
+        });
+
+        function showFoodCityResults(job) {
+            const results = job.result || [];
+            const totalCount = job.stats?.count || results.length;
+
+            let html = `<div class="mb-2" style="font-size: 0.85rem;">
+                <span class="text-muted">Found ${formatNumber(totalCount)} establishments</span>
+                ${job.output_file ? `<br><a href="/api/download/${job.output_file}" class="btn btn-success btn-sm mt-1">
+                    <i class="bi bi-download me-1"></i> Download CSV
+                </a>` : ''}
+            </div>`;
+
+            if (results.length > 0) {
+                html += '<div class="list-group list-group-flush" style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;">';
+                results.slice(0, 20).forEach(r => {
+                    html += `<div class="list-group-item px-0 py-1">
+                        <strong>${r.business_name || 'N/A'}</strong>
+                        <br><small class="text-muted">${r.license_type || ''} - ${r.city || ''}</small>
+                    </div>`;
+                });
+                html += '</div>';
+                if (totalCount > 20) {
+                    html += `<p class="text-muted text-center mt-2" style="font-size: 0.75rem;">Showing 20 of ${formatNumber(totalCount)}. Download CSV for full list.</p>`;
+                }
+            }
+
+            document.getElementById('foodCityResults').innerHTML = html;
+        }
 
         // Initial load
         loadFiles();

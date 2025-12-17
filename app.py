@@ -547,6 +547,214 @@ def run_npi_lookup_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_health_dept_job(job: ProspectorJob):
+    """Run a health department prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting health department prospect search..."
+
+        from prospector.industries.health_dept import HealthDeptProspector
+
+        config = {
+            "target_states": job.config.get("states", ["FL"]),
+            "include_cities": job.config.get("include_cities", True),
+            "active_only": job.config.get("active_only", True),
+            "max_records_per_source": job.config.get("max_records", 10000),
+            "app_token": os.environ.get("SOCRATA_APP_TOKEN"),
+        }
+
+        prospector = HealthDeptProspector(config)
+
+        # Get active sources for progress tracking
+        sources = prospector._get_active_sources()
+        total_sources = len(sources)
+
+        # Fetch with progress updates
+        all_records = []
+        for i, source_key in enumerate(sources):
+            job.progress = int((i / total_sources) * 80)
+            job.progress_message = f"Fetching from {source_key}... ({i+1}/{total_sources})"
+
+            source_records = prospector._fetch_source_data(source_key)
+            all_records.extend(source_records)
+            time.sleep(0.5)
+
+        job.progress = 80
+        job.progress_message = f"Processing {len(all_records)} records..."
+
+        # Process records
+        prospects = []
+        for raw in all_records:
+            try:
+                record = prospector.parse_record(raw)
+                record.source = prospector.get_industry_name()
+                prospects.append(record)
+            except Exception:
+                continue
+
+        # Score prospects
+        job.progress = 90
+        job.progress_message = "Scoring prospects..."
+
+        from prospector.core.scoring import ScoringEngine
+        scoring_engine = ScoringEngine(prospector.get_scoring_rules())
+        prospects = [scoring_engine.score(r) for r in prospects]
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+
+        prospector._prospects = prospects
+
+        # Export to CSV
+        job.progress = 95
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"health_dept_prospects_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        df = prospector.to_dataframe()
+        df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        if not df.empty and "Score" in df.columns:
+            hot_df = df[df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"health_dept_prospects_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        if not df.empty:
+            job.stats = prospector.get_summary()
+        else:
+            job.stats = {"total": 0, "message": "No prospects found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_license_lookup_job(job: ProspectorJob):
+    """Run a license lookup job for food establishments."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Looking up establishment..."
+
+        from prospector.industries.health_dept import lookup_by_license
+
+        license_number = job.config.get("license_number")
+        state = job.config.get("state", "FL")
+        app_token = os.environ.get("SOCRATA_APP_TOKEN")
+
+        result = lookup_by_license(license_number, state=state, app_token=app_token)
+
+        if result:
+            job.result = result
+            job.status = "completed"
+            job.progress = 100
+            job.progress_message = "Found!"
+        else:
+            job.status = "completed"
+            job.progress = 100
+            job.progress_message = "No establishment found"
+            job.result = None
+
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_food_city_job(job: ProspectorJob):
+    """Run a city search job for food establishments."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Fetching establishments..."
+
+        from prospector.industries.health_dept import get_establishments_by_city
+
+        city = job.config.get("city")
+        state = job.config.get("state")
+        facility_type = job.config.get("facility_type")
+        app_token = os.environ.get("SOCRATA_APP_TOKEN")
+
+        results = get_establishments_by_city(
+            city=city,
+            state=state,
+            facility_type=facility_type,
+            app_token=app_token,
+        )
+
+        # Export to CSV if results
+        if results:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"food_establishments_{city}_{state}_{timestamp}.csv"
+            filepath = OUTPUT_DIR / filename
+
+            import pandas as pd
+            df = pd.DataFrame(results)
+            df.to_csv(filepath, index=False)
+            job.output_file = filename
+
+        job.result = results[:50]  # Return first 50 for display
+        job.stats = {"count": len(results)}
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = f"Found {len(results)} establishments"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_food_name_search_job(job: ProspectorJob):
+    """Run a name search job for food establishments."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Searching..."
+
+        from prospector.industries.health_dept import search_by_name
+
+        business_name = job.config.get("business_name")
+        state = job.config.get("state", "FL")
+        city = job.config.get("city")
+        limit = job.config.get("limit", 25)
+        app_token = os.environ.get("SOCRATA_APP_TOKEN")
+
+        results = search_by_name(
+            business_name,
+            state=state,
+            city=city,
+            limit=limit,
+            app_token=app_token
+        )
+
+        job.result = results
+        job.stats = {"count": len(results)}
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = f"Found {len(results)} results"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 # Routes
 
 @app.route("/")
@@ -753,6 +961,108 @@ def start_npi_lookup():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_npi_lookup_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/health-dept", methods=["POST"])
+def start_health_dept_search():
+    """Start a new health department prospect search job."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL,TX")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "include_cities": data.get("include_cities", True),
+        "active_only": data.get("active_only", True),
+        "max_records": int(data.get("max_records", 10000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_health_dept_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/license-lookup", methods=["POST"])
+def start_license_lookup():
+    """Start a license lookup for food establishments."""
+    data = request.json or {}
+    license_number = data.get("license_number", "").strip()
+    state = data.get("state", "FL").strip().upper()
+
+    if not license_number:
+        return jsonify({"error": "Please provide a license number"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "license_number": license_number,
+        "state": state,
+    })
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_license_lookup_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/food-city", methods=["POST"])
+def start_food_city_search():
+    """Start a city-based search for food establishments."""
+    data = request.json or {}
+    city = data.get("city", "").strip()
+    state = data.get("state", "").strip().upper()
+
+    if not city or not state:
+        return jsonify({"error": "Please provide both city and state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "city": city,
+        "state": state,
+        "facility_type": data.get("facility_type", "").strip() or None,
+    })
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_food_city_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/food-search", methods=["POST"])
+def start_food_name_search():
+    """Start a name search for food establishments."""
+    data = request.json or {}
+    business_name = data.get("business_name", "").strip()
+
+    if not business_name:
+        return jsonify({"error": "Please provide a business name"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "business_name": business_name,
+        "state": data.get("state", "FL").strip().upper(),
+        "city": data.get("city", "").strip() or None,
+        "limit": int(data.get("limit", 25)),
+    })
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_food_name_search_job, args=(job,))
     thread.daemon = True
     thread.start()
 
