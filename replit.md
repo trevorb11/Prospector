@@ -6,6 +6,7 @@ Prospector is a lead generation and scoring tool designed for merchant cash adva
 
 **Supported Industries:**
 - Trucking (FMCSA) - Motor carriers with truck/driver counts
+- Restaurants (NYC DOHMH) - Restaurants with health inspection data
 - Healthcare (NPI Registry) - Medical providers and practices  
 - Aviation (FAA Registry) - Aircraft owners and fleet operators
 - Construction (OpenCorporates) - General contractors
@@ -33,6 +34,7 @@ The codebase follows a modular architecture with clear separation of concerns:
 - **Industry Modules** (`prospector/industries/`): Industry-specific implementations
   - Each industry inherits from `IndustryProspector`
   - Trucking: FMCSA/Socrata API for motor carriers
+  - Restaurants: NYC DOHMH health inspections via Socrata
   - Healthcare: NPI Registry for medical providers
   - Aviation: FAA Registry for aircraft owners
   - Construction: OpenCorporates for general contractors
