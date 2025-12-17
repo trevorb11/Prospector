@@ -701,6 +701,64 @@ def run_ca_contractors_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_restaurant_job(job: ProspectorJob):
+    """Run a restaurant prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting restaurant search..."
+
+        from prospector.industries.restaurants import RestaurantProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = RestaurantProspector()
+
+        prospects = prospector.search(
+            boroughs=job.config.get("boroughs"),
+            cuisines=job.config.get("cuisines"),
+            grades=job.config.get("grades"),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"restaurants_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            hot_prospects = [p for p in prospects if p.phone]
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len(hot_prospects),
+                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+            }
+        else:
+            job.stats = {"total": 0, "message": "No restaurants found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 def run_npi_lookup_job(job: ProspectorJob):
     """Run an NPI lookup job."""
     try:
@@ -1000,6 +1058,37 @@ def start_ca_contractors_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_ca_contractors_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/restaurants", methods=["POST"])
+def start_restaurant_search():
+    """Start a new restaurant prospect search job."""
+    data = request.json or {}
+
+    boroughs_str = data.get("boroughs", "")
+    boroughs = [b.strip().upper() for b in boroughs_str.split(",") if b.strip()] if boroughs_str else None
+
+    cuisines_str = data.get("cuisines", "")
+    cuisines = [c.strip() for c in cuisines_str.split(",") if c.strip()] if cuisines_str else None
+
+    grades_str = data.get("grades", "")
+    grades = [g.strip().upper() for g in grades_str.split(",") if g.strip()] if grades_str else None
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "boroughs": boroughs,
+        "cuisines": cuisines,
+        "grades": grades,
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_restaurant_job, args=(job,))
     thread.daemon = True
     thread.start()
 

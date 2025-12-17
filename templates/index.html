@@ -234,6 +234,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="restaurants-tab" data-bs-toggle="pill" data-bs-target="#restaurants" type="button">
+                    <i class="bi bi-cup-hot me-1"></i> Restaurants
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="healthcare-tab" data-bs-toggle="pill" data-bs-target="#healthcare" type="button">
                     <i class="bi bi-hospital me-1"></i> Healthcare
                 </button>
@@ -580,6 +585,133 @@
                                         <span id="matchErrorText"></span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restaurants Tab -->
+            <div class="tab-pane fade" id="restaurants" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-cup-hot me-2"></i>Restaurant Search
+                            </div>
+                            <div class="card-body">
+                                <form id="restaurantForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">NYC Boroughs (Optional)</label>
+                                        <input type="text" class="form-control" id="restaurantBoroughs"
+                                               value=""
+                                               placeholder="e.g., MANHATTAN,BROOKLYN">
+                                        <small class="text-muted">Leave blank for all NYC boroughs</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cuisine Types (Optional)</label>
+                                        <input type="text" class="form-control" id="restaurantCuisines"
+                                               value=""
+                                               placeholder="e.g., Italian,Mexican,Chinese">
+                                        <small class="text-muted">Comma-separated cuisine types</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Inspection Grades</label>
+                                        <select class="form-select" id="restaurantGrades">
+                                            <option value="A" selected>A only (Best)</option>
+                                            <option value="A,B">A and B</option>
+                                            <option value="A,B,C">All grades (A, B, C)</option>
+                                        </select>
+                                        <small class="text-muted">Higher grades = better run businesses</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="restaurantLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                            <option value="5000">5,000 (Full)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startRestaurantBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search Restaurants
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About Restaurant Data
+                            </div>
+                            <div class="card-body small">
+                                <p><strong>Source:</strong> NYC DOHMH Health Inspections</p>
+                                <p><strong>Coverage:</strong> 27,000+ NYC restaurants</p>
+                                <p><strong>Data includes:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Business name and address</li>
+                                    <li>Phone numbers</li>
+                                    <li>Cuisine type</li>
+                                    <li>Inspection grade (A, B, C)</li>
+                                    <li>Health inspection score</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="restaurantEmpty" class="text-center py-5 text-muted">
+                            <i class="bi bi-cup-hot display-1"></i>
+                            <h4 class="mt-3">Find Restaurant Prospects</h4>
+                            <p>Search NYC health department database for restaurants with contact info.</p>
+                        </div>
+
+                        <div id="restaurantProgress" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Searching Restaurants...</h5>
+                            <div class="progress mt-3 mx-auto" style="max-width: 400px;">
+                                <div class="progress-bar" id="restaurantProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-muted mt-2" id="restaurantProgressMessage">Starting...</p>
+                        </div>
+
+                        <div id="restaurantResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-primary" id="restaurantTotalCount">0</h2>
+                                            <p class="text-muted mb-0">Total Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-success" id="restaurantHotCount">0</h2>
+                                            <p class="text-muted mb-0">With Phone</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-info" id="restaurantAvgScore">0</h2>
+                                            <p class="text-muted mb-0">Avg Score</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="btn btn-success" id="restaurantDownloadAll">
+                                    <i class="bi bi-download me-1"></i> Download All Results
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1771,6 +1903,89 @@
                 document.getElementById('matchErrorText').textContent = error.message;
             }
         });
+
+        // Restaurant Search
+        let restaurantJobId = null;
+        let restaurantPollInterval = null;
+
+        document.getElementById('restaurantForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                boroughs: document.getElementById('restaurantBoroughs').value,
+                cuisines: document.getElementById('restaurantCuisines').value,
+                grades: document.getElementById('restaurantGrades').value,
+                limit: document.getElementById('restaurantLimit').value
+            };
+
+            document.getElementById('restaurantEmpty').style.display = 'none';
+            document.getElementById('restaurantResults').style.display = 'none';
+            document.getElementById('restaurantProgress').style.display = 'block';
+            document.getElementById('startRestaurantBtn').disabled = true;
+            document.getElementById('startRestaurantBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/restaurants', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                restaurantJobId = result.job_id;
+
+                restaurantPollInterval = setInterval(pollRestaurantStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetRestaurantForm();
+            }
+        });
+
+        async function pollRestaurantStatus() {
+            try {
+                const response = await fetch(`/api/job/${restaurantJobId}`);
+                const job = await response.json();
+
+                document.getElementById('restaurantProgressBar').style.width = job.progress + '%';
+                document.getElementById('restaurantProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(restaurantPollInterval);
+                    showRestaurantResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(restaurantPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetRestaurantForm();
+                }
+            } catch (error) {
+                clearInterval(restaurantPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetRestaurantForm();
+            }
+        }
+
+        function resetRestaurantForm() {
+            document.getElementById('restaurantProgress').style.display = 'none';
+            document.getElementById('restaurantEmpty').style.display = 'block';
+            document.getElementById('startRestaurantBtn').disabled = false;
+            document.getElementById('startRestaurantBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Restaurants';
+        }
+
+        function showRestaurantResults(job) {
+            document.getElementById('restaurantProgress').style.display = 'none';
+            document.getElementById('restaurantResults').style.display = 'block';
+            document.getElementById('startRestaurantBtn').disabled = false;
+            document.getElementById('startRestaurantBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search Restaurants';
+
+            const stats = job.stats || {};
+            document.getElementById('restaurantTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('restaurantHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('restaurantAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('restaurantDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+        }
 
         // Healthcare Search
         let healthcareJobId = null;
