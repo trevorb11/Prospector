@@ -525,11 +525,35 @@
 
                                 <form id="matchForm">
                                     <div class="mb-3">
-                                        <label class="form-label fw-semibold">1. Select Prospect File to Match Against</label>
-                                        <select class="form-select" id="matchProspectFile" required>
-                                            <option value="">Loading files...</option>
+                                        <label class="form-label fw-semibold">1. Prospect File to Match Against</label>
+                                        <div class="btn-group w-100 mb-2" role="group">
+                                            <input type="radio" class="btn-check" name="prospectSource" id="prospectSourceExisting" value="existing" checked>
+                                            <label class="btn btn-outline-secondary" for="prospectSourceExisting">
+                                                <i class="bi bi-folder me-1"></i> Select Existing File
+                                            </label>
+                                            <input type="radio" class="btn-check" name="prospectSource" id="prospectSourceUpload" value="upload">
+                                            <label class="btn btn-outline-secondary" for="prospectSourceUpload">
+                                                <i class="bi bi-upload me-1"></i> Upload New File
+                                            </label>
+                                        </div>
+                                        <div id="prospectExistingArea">
+                                            <select class="form-select" id="matchProspectFile">
+                                                <option value="">Loading files...</option>
+                                            </select>
+                                            <small class="text-muted">Select a prospect file you've previously generated</small>
+                                        </div>
+                                        <div id="prospectUploadArea" style="display: none;">
+                                            <input type="file" class="form-control" id="matchProspectUpload" 
+                                                   accept=".csv,.xlsx,.xls">
+                                            <small class="text-muted">Upload a CSV or Excel file with prospect data</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3" id="prospectColumnSelectArea" style="display: none;">
+                                        <label class="form-label fw-semibold">Prospect Name Column</label>
+                                        <select class="form-select" id="matchProspectNameColumn">
                                         </select>
-                                        <small class="text-muted">Select a prospect file you've previously generated</small>
+                                        <small class="text-muted">Which column in the prospect file contains the business name?</small>
                                     </div>
 
                                     <div class="mb-3">
@@ -540,10 +564,10 @@
                                     </div>
 
                                     <div class="mb-3" id="columnSelectArea" style="display: none;">
-                                        <label class="form-label fw-semibold">3. Select Name Column</label>
+                                        <label class="form-label fw-semibold">Your File's Name Column</label>
                                         <select class="form-select" id="matchNameColumn">
                                         </select>
-                                        <small class="text-muted">Which column contains the business/company name?</small>
+                                        <small class="text-muted">Which column in your file contains the business/company name?</small>
                                     </div>
 
                                     <div class="mb-3">
@@ -1817,6 +1841,49 @@
 
         document.getElementById('match-tab').addEventListener('click', loadMatchFiles);
 
+        // Toggle between existing file selection and upload
+        document.querySelectorAll('input[name="prospectSource"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'existing') {
+                    document.getElementById('prospectExistingArea').style.display = 'block';
+                    document.getElementById('prospectUploadArea').style.display = 'none';
+                    document.getElementById('prospectColumnSelectArea').style.display = 'none';
+                } else {
+                    document.getElementById('prospectExistingArea').style.display = 'none';
+                    document.getElementById('prospectUploadArea').style.display = 'block';
+                }
+            });
+        });
+
+        // Handle prospect file upload - get columns
+        document.getElementById('matchProspectUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/file-columns', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.columns) {
+                    const select = document.getElementById('matchProspectNameColumn');
+                    select.innerHTML = '';
+                    data.columns.forEach(col => {
+                        const selected = col === data.suggested_name_column ? 'selected' : '';
+                        select.innerHTML += `<option value="${col}" ${selected}>${col}</option>`;
+                    });
+                    document.getElementById('prospectColumnSelectArea').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error getting prospect columns:', error);
+            }
+        });
+
         document.getElementById('matchFile').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -1849,13 +1916,23 @@
             e.preventDefault();
 
             const file = document.getElementById('matchFile').files[0];
-            const prospectFile = document.getElementById('matchProspectFile').value;
             const nameColumn = document.getElementById('matchNameColumn').value;
             const threshold = document.getElementById('matchThreshold').value;
+            const prospectSource = document.querySelector('input[name="prospectSource"]:checked').value;
 
-            if (!file || !prospectFile) {
-                alert('Please select both a file to upload and a prospect file to match against.');
-                return;
+            // Validate based on source type
+            if (prospectSource === 'existing') {
+                const prospectFile = document.getElementById('matchProspectFile').value;
+                if (!file || !prospectFile) {
+                    alert('Please select both your data file and a prospect file to match against.');
+                    return;
+                }
+            } else {
+                const prospectUpload = document.getElementById('matchProspectUpload').files[0];
+                if (!file || !prospectUpload) {
+                    alert('Please upload both files to match.');
+                    return;
+                }
             }
 
             document.getElementById('matchBtn').disabled = true;
@@ -1865,9 +1942,16 @@
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('prospect_file', prospectFile);
             formData.append('name_column', nameColumn);
             formData.append('threshold', threshold);
+            formData.append('prospect_source', prospectSource);
+
+            if (prospectSource === 'existing') {
+                formData.append('prospect_file', document.getElementById('matchProspectFile').value);
+            } else {
+                formData.append('prospect_upload', document.getElementById('matchProspectUpload').files[0]);
+                formData.append('prospect_name_column', document.getElementById('matchProspectNameColumn').value);
+            }
 
             try {
                 const response = await fetch('/api/match', {

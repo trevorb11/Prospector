@@ -1174,20 +1174,12 @@ def match_data():
         return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files['file']
-    prospect_file = request.form.get('prospect_file', '')
     name_column = request.form.get('name_column', '')
     match_threshold = float(request.form.get('threshold', 0.8))
+    prospect_source = request.form.get('prospect_source', 'existing')
 
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
-
-    if not prospect_file:
-        return jsonify({"error": "No prospect file selected"}), 400
-
-    safe_prospect_file = Path(prospect_file).name
-    prospect_path = OUTPUT_DIR / safe_prospect_file
-    if not prospect_path.exists():
-        return jsonify({"error": "Prospect file not found"}), 404
 
     try:
         if file.filename.endswith('.xlsx') or file.filename.endswith('.xls'):
@@ -1195,7 +1187,39 @@ def match_data():
         else:
             uploaded_df = pd.read_csv(file)
 
-        prospect_df = pd.read_csv(prospect_path)
+        # Handle prospect file - either from existing files or uploaded
+        if prospect_source == 'upload':
+            if 'prospect_upload' not in request.files:
+                return jsonify({"error": "No prospect file uploaded"}), 400
+            prospect_file_obj = request.files['prospect_upload']
+            if prospect_file_obj.filename == '':
+                return jsonify({"error": "No prospect file selected"}), 400
+            
+            if prospect_file_obj.filename.endswith('.xlsx') or prospect_file_obj.filename.endswith('.xls'):
+                prospect_df = pd.read_excel(prospect_file_obj)
+            else:
+                prospect_df = pd.read_csv(prospect_file_obj)
+            
+            # Use provided column name for uploaded prospect file
+            prospect_name_column = request.form.get('prospect_name_column', '')
+            if prospect_name_column and prospect_name_column in prospect_df.columns:
+                prospect_name_col = prospect_name_column
+            else:
+                # Try to find a name column
+                possible_cols = [c for c in prospect_df.columns if 'name' in c.lower() or 'company' in c.lower() or 'business' in c.lower()]
+                prospect_name_col = possible_cols[0] if possible_cols else prospect_df.columns[0]
+        else:
+            prospect_file = request.form.get('prospect_file', '')
+            if not prospect_file:
+                return jsonify({"error": "No prospect file selected"}), 400
+
+            safe_prospect_file = Path(prospect_file).name
+            prospect_path = OUTPUT_DIR / safe_prospect_file
+            if not prospect_path.exists():
+                return jsonify({"error": "Prospect file not found"}), 404
+            
+            prospect_df = pd.read_csv(prospect_path)
+            prospect_name_col = 'Company Name' if 'Company Name' in prospect_df.columns else prospect_df.columns[0]
 
         if not name_column or name_column not in uploaded_df.columns:
             possible_cols = [c for c in uploaded_df.columns if 'name' in c.lower() or 'company' in c.lower() or 'business' in c.lower()]
@@ -1217,8 +1241,6 @@ def match_data():
             if not n1 or not n2:
                 return 0.0
             return SequenceMatcher(None, n1, n2).ratio()
-
-        prospect_name_col = 'Company Name' if 'Company Name' in prospect_df.columns else prospect_df.columns[0]
 
         prospect_df['_normalized_name'] = prospect_df[prospect_name_col].apply(normalize_name)
         prospect_records = prospect_df.to_dict('records')
