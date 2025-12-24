@@ -759,6 +759,73 @@ def run_restaurant_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_ct_licenses_job(job: ProspectorJob):
+    """Run a Connecticut licensed businesses search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting CT licensed businesses search..."
+
+        from prospector.industries.ct_licenses import CTLicenseProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = CTLicenseProspector()
+
+        credential_types = job.config.get("credential_types")
+        if credential_types:
+            credential_types = [c.strip() for c in credential_types.split(",") if c.strip()]
+        
+        cities = job.config.get("cities")
+        if cities:
+            cities = [c.strip() for c in cities.split(",") if c.strip()]
+
+        prospects = prospector.search(
+            credential_types=credential_types if credential_types else None,
+            cities=cities if cities else None,
+            active_only=job.config.get("active_only", True),
+            businesses_only=job.config.get("businesses_only", True),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"ct_licenses_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            hot_prospects = [p for p in prospects if p.score >= 70]
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len(hot_prospects),
+                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+            }
+        else:
+            job.stats = {"total": 0, "message": "No businesses found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 def run_npi_lookup_job(job: ProspectorJob):
     """Run an NPI lookup job."""
     try:
@@ -1089,6 +1156,32 @@ def start_restaurant_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_restaurant_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/ct-licenses", methods=["POST"])
+def start_ct_licenses_search():
+    """Start a new Connecticut licensed businesses prospect search job."""
+    data = request.json or {}
+
+    credential_types = data.get("credential_types", "")
+    cities = data.get("cities", "")
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "credential_types": credential_types,
+        "cities": cities,
+        "active_only": data.get("active_only", True),
+        "businesses_only": data.get("businesses_only", True),
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_ct_licenses_job, args=(job,))
     thread.daemon = True
     thread.start()
 

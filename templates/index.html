@@ -264,6 +264,11 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ctlicenses-tab" data-bs-toggle="pill" data-bs-target="#ctlicenses" type="button">
+                    <i class="bi bi-building me-1"></i> CT Licenses
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
                 <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
                     <i class="bi bi-folder me-1"></i> Downloads
                 </button>
@@ -1399,6 +1404,132 @@
                 </div>
             </div>
 
+            <!-- CT Licenses Tab -->
+            <div class="tab-pane fade" id="ctlicenses" role="tabpanel">
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="bi bi-gear me-2"></i>Search Configuration
+                            </div>
+                            <div class="card-body">
+                                <form id="ctLicensesForm">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">License Types (Optional)</label>
+                                        <input type="text" class="form-control" id="ctCredentialTypes"
+                                               value=""
+                                               placeholder="e.g., HOME IMPROVEMENT CONTRACTOR">
+                                        <small class="text-muted">Comma-separated license types</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="ctCities"
+                                               value=""
+                                               placeholder="e.g., Hartford,New Haven">
+                                        <small class="text-muted">Comma-separated CT city names</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="ctBusinessesOnly" checked>
+                                            <label class="form-check-label" for="ctBusinessesOnly">
+                                                Businesses only (exclude individuals)
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="ctLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                            <option value="5000">5,000 (Large)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startCTLicensesBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search CT Licenses
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-info-circle me-2"></i>About CT License Data
+                            </div>
+                            <div class="card-body small">
+                                <p><strong>Source:</strong> Connecticut Open Data Portal</p>
+                                <p><strong>Coverage:</strong> 2.5M+ licensed businesses and professionals</p>
+                                <p><strong>Popular license types:</strong></p>
+                                <ul class="mb-0">
+                                    <li>Home Improvement Contractors (132K)</li>
+                                    <li>Real Estate Agents/Brokers (117K)</li>
+                                    <li>CPAs (19K) - Great for referrals!</li>
+                                    <li>Professional Engineers (30K)</li>
+                                    <li>Electrical/Plumbing (45K)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
+                        <div id="ctEmpty" class="text-center py-5 text-muted">
+                            <i class="bi bi-building display-1"></i>
+                            <h4 class="mt-3">Find CT Licensed Businesses</h4>
+                            <p>Search Connecticut's database of licensed businesses and professionals.</p>
+                        </div>
+
+                        <div id="ctProgress" style="display: none;" class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5>Searching CT Licenses...</h5>
+                            <div class="progress mt-3 mx-auto" style="max-width: 400px;">
+                                <div class="progress-bar" id="ctProgressBar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-muted mt-2" id="ctProgressMessage">Starting...</p>
+                        </div>
+
+                        <div id="ctResults" style="display: none;">
+                            <div class="row mb-4">
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-primary" id="ctTotalCount">0</h2>
+                                            <p class="text-muted mb-0">Total Found</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-success" id="ctHotCount">0</h2>
+                                            <p class="text-muted mb-0">Hot Prospects (70+)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h2 class="text-info" id="ctAvgScore">0</h2>
+                                            <p class="text-muted mb-0">Avg Score</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center">
+                                <a href="#" class="btn btn-success" id="ctDownloadAll">
+                                    <i class="bi bi-download me-1"></i> Download All Results
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Downloads Tab -->
             <div class="tab-pane fade" id="files" role="tabpanel">
                 <div class="row justify-content-center">
@@ -2496,6 +2627,90 @@
 
             if (job.output_file) {
                 document.getElementById('caDownloadAll').href = `/api/download/${job.output_file}`;
+            }
+        }
+
+        // CT Licenses Search
+        let ctJobId = null;
+        let ctPollInterval = null;
+
+        document.getElementById('ctLicensesForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                credential_types: document.getElementById('ctCredentialTypes').value,
+                cities: document.getElementById('ctCities').value,
+                active_only: true,
+                businesses_only: document.getElementById('ctBusinessesOnly').checked,
+                limit: document.getElementById('ctLimit').value
+            };
+
+            document.getElementById('ctEmpty').style.display = 'none';
+            document.getElementById('ctResults').style.display = 'none';
+            document.getElementById('ctProgress').style.display = 'block';
+            document.getElementById('startCTLicensesBtn').disabled = true;
+            document.getElementById('startCTLicensesBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/ct-licenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                ctJobId = result.job_id;
+
+                ctPollInterval = setInterval(pollCTStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetCTForm();
+            }
+        });
+
+        async function pollCTStatus() {
+            try {
+                const response = await fetch(`/api/job/${ctJobId}`);
+                const job = await response.json();
+
+                document.getElementById('ctProgressBar').style.width = job.progress + '%';
+                document.getElementById('ctProgressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(ctPollInterval);
+                    showCTResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(ctPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetCTForm();
+                }
+            } catch (error) {
+                clearInterval(ctPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetCTForm();
+            }
+        }
+
+        function resetCTForm() {
+            document.getElementById('ctProgress').style.display = 'none';
+            document.getElementById('ctEmpty').style.display = 'block';
+            document.getElementById('startCTLicensesBtn').disabled = false;
+            document.getElementById('startCTLicensesBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search CT Licenses';
+        }
+
+        function showCTResults(job) {
+            document.getElementById('ctProgress').style.display = 'none';
+            document.getElementById('ctResults').style.display = 'block';
+            document.getElementById('startCTLicensesBtn').disabled = false;
+            document.getElementById('startCTLicensesBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search CT Licenses';
+
+            const stats = job.stats || {};
+            document.getElementById('ctTotalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('ctHotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('ctAvgScore').textContent = stats.avg_score || 0;
+
+            if (job.output_file) {
+                document.getElementById('ctDownloadAll').href = `/api/download/${job.output_file}`;
             }
         }
 
