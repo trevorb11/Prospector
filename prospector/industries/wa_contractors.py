@@ -56,6 +56,9 @@ class WAContractorProspector(IndustryProspector):
         
         where_clauses = []
         
+        if active_only:
+            where_clauses.append("status='Active'")
+        
         if cities:
             city_conditions = " OR ".join([f"upper(city)='{c.upper()}'" for c in cities])
             where_clauses.append(f"({city_conditions})")

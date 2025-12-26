@@ -206,74 +206,44 @@
     </nav>
 
     <div class="container">
-        <!-- Tab Navigation -->
-        <ul class="nav nav-pills mb-4" id="mainTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="prospect-tab" data-bs-toggle="pill" data-bs-target="#prospect" type="button">
-                    <i class="bi bi-truck me-1"></i> Find Prospects
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="lookup-tab" data-bs-toggle="pill" data-bs-target="#lookup" type="button">
-                    <i class="bi bi-search me-1"></i> DOT Lookup
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button">
-                    <i class="bi bi-building me-1"></i> Name Search
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="city-tab" data-bs-toggle="pill" data-bs-target="#city" type="button">
-                    <i class="bi bi-geo-alt me-1"></i> City Search
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="match-tab" data-bs-toggle="pill" data-bs-target="#match" type="button">
-                    <i class="bi bi-file-earmark-arrow-up me-1"></i> Match Data
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="restaurants-tab" data-bs-toggle="pill" data-bs-target="#restaurants" type="button">
-                    <i class="bi bi-cup-hot me-1"></i> Restaurants
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="healthcare-tab" data-bs-toggle="pill" data-bs-target="#healthcare" type="button">
-                    <i class="bi bi-hospital me-1"></i> Healthcare
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="aviation-tab" data-bs-toggle="pill" data-bs-target="#aviation" type="button">
-                    <i class="bi bi-airplane me-1"></i> Aviation
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="federal-tab" data-bs-toggle="pill" data-bs-target="#federal" type="button">
-                    <i class="bi bi-bank me-1"></i> Federal
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ppp-tab" data-bs-toggle="pill" data-bs-target="#ppp" type="button">
-                    <i class="bi bi-cash-stack me-1"></i> PPP Loans
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="cacontractors-tab" data-bs-toggle="pill" data-bs-target="#cacontractors" type="button">
-                    <i class="bi bi-tools me-1"></i> CA Contractors
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="ctlicenses-tab" data-bs-toggle="pill" data-bs-target="#ctlicenses" type="button">
-                    <i class="bi bi-building me-1"></i> CT Licenses
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
-                    <i class="bi bi-folder me-1"></i> Downloads
-                </button>
-            </li>
-        </ul>
+        <!-- Two-row navigation: Tools bar + Data source selector -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <!-- Utility Tools Navigation -->
+                <ul class="nav nav-pills mb-3 justify-content-center" id="toolsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="prospect-tab" data-bs-toggle="pill" data-bs-target="#prospect" type="button">
+                            <i class="bi bi-search me-1"></i> Find Prospects
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="lookup-tab" data-bs-toggle="pill" data-bs-target="#lookup" type="button">
+                            <i class="bi bi-truck me-1"></i> DOT Lookup
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button">
+                            <i class="bi bi-building me-1"></i> Name Search
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="city-tab" data-bs-toggle="pill" data-bs-target="#city" type="button">
+                            <i class="bi bi-geo-alt me-1"></i> City Search
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="match-tab" data-bs-toggle="pill" data-bs-target="#match" type="button">
+                            <i class="bi bi-file-earmark-arrow-up me-1"></i> Match Data
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="files-tab" data-bs-toggle="pill" data-bs-target="#files" type="button">
+                            <i class="bi bi-folder me-1"></i> Downloads
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
 
         <div class="tab-content" id="mainTabsContent">
             <!-- Find Prospects Tab -->
@@ -282,10 +252,40 @@
                     <div class="col-lg-4">
                         <div class="card mb-4">
                             <div class="card-header">
+                                <i class="bi bi-database me-2"></i>Select Data Source
+                            </div>
+                            <div class="card-body">
+                                <select class="form-select form-select-lg mb-3" id="dataSourceSelect">
+                                    <optgroup label="Transportation">
+                                        <option value="trucking" selected>Trucking (FMCSA)</option>
+                                        <option value="aviation">Aviation (FAA)</option>
+                                    </optgroup>
+                                    <optgroup label="Contractors">
+                                        <option value="ca_contractors">California Contractors (CSLB)</option>
+                                        <option value="ct_licenses">Connecticut Licenses (2.5M+)</option>
+                                        <option value="wa_contractors">Washington Contractors</option>
+                                    </optgroup>
+                                    <optgroup label="Food Service">
+                                        <option value="restaurants">NYC Restaurants (DOHMH)</option>
+                                    </optgroup>
+                                    <optgroup label="Healthcare">
+                                        <option value="healthcare">Healthcare Providers (NPI)</option>
+                                    </optgroup>
+                                    <optgroup label="Government & Finance">
+                                        <option value="federal">Federal Contractors (SAM.gov)</option>
+                                        <option value="ppp">PPP Loan Recipients (SBA)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
                                 <i class="bi bi-gear me-2"></i>Search Configuration
                             </div>
                             <div class="card-body">
-                                <form id="prospectForm">
+                                <!-- Trucking Form -->
+                                <form id="prospectForm" class="dataSourceForm" data-source="trucking">
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Target States</label>
                                         <input type="text" class="form-control" id="states"
@@ -316,30 +316,273 @@
                                     </div>
 
                                     <button type="submit" class="btn btn-primary w-100" id="startProspectBtn">
-                                        <i class="bi bi-play-fill me-1"></i> Start Search
+                                        <i class="bi bi-play-fill me-1"></i> Search Trucking
+                                    </button>
+                                </form>
+
+                                <!-- WA Contractors Form -->
+                                <form id="waContractorsForm" class="dataSourceForm" data-source="wa_contractors" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="waCities"
+                                               value=""
+                                               placeholder="e.g., Seattle,Tacoma,Spokane">
+                                        <small class="text-muted">Comma-separated city names</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Counties (Optional)</label>
+                                        <input type="text" class="form-control" id="waCounties"
+                                               value=""
+                                               placeholder="e.g., King,Pierce,Snohomish">
+                                        <small class="text-muted">Comma-separated county names</small>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Business Name (Optional)</label>
+                                        <input type="text" class="form-control" id="waBusinessName"
+                                               value=""
+                                               placeholder="Search by business name">
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="waLimit">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                            <option value="5000">5,000 (Large)</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary w-100" id="startWAContractorsBtn">
+                                        <i class="bi bi-play-fill me-1"></i> Search WA Contractors
+                                    </button>
+                                </form>
+
+                                <!-- CA Contractors Form (Inline) -->
+                                <form id="caContractorsFormInline" class="dataSourceForm" data-source="ca_contractors" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">License Types (Optional)</label>
+                                        <input type="text" class="form-control" id="caLicenseTypesInline"
+                                               value=""
+                                               placeholder="e.g., B,C-10,C-36">
+                                        <small class="text-muted">B=General, C-10=Electrical, C-36=Plumbing</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="caCitiesInline"
+                                               value=""
+                                               placeholder="e.g., Los Angeles,San Diego">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="hasWorkersCompInline">
+                                            <label class="form-check-label" for="hasWorkersCompInline">
+                                                With workers' comp only (has employees)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="caLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startCAContractorsBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search CA Contractors
+                                    </button>
+                                </form>
+
+                                <!-- CT Licenses Form (Inline) -->
+                                <form id="ctLicensesFormInline" class="dataSourceForm" data-source="ct_licenses" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">License Types (Optional)</label>
+                                        <input type="text" class="form-control" id="ctCredentialTypesInline"
+                                               value=""
+                                               placeholder="e.g., HOME IMPROVEMENT CONTRACTOR">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="ctCitiesInline"
+                                               value=""
+                                               placeholder="e.g., Hartford,New Haven">
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="ctBusinessesOnlyInline" checked>
+                                            <label class="form-check-label" for="ctBusinessesOnlyInline">
+                                                Businesses only (exclude individuals)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="ctLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                            <option value="5000">5,000 (Large)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startCTLicensesBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search CT Licenses
+                                    </button>
+                                </form>
+
+                                <!-- Restaurants Form (Inline) -->
+                                <form id="restaurantsFormInline" class="dataSourceForm" data-source="restaurants" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Boroughs</label>
+                                        <input type="text" class="form-control" id="boroughsInline"
+                                               value="MANHATTAN,BROOKLYN,QUEENS"
+                                               placeholder="e.g., MANHATTAN,BROOKLYN">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cuisine Types (Optional)</label>
+                                        <input type="text" class="form-control" id="cuisinesInline"
+                                               value=""
+                                               placeholder="e.g., Italian,Chinese,Mexican">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="restaurantLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startRestaurantsBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search NYC Restaurants
+                                    </button>
+                                </form>
+
+                                <!-- Federal Contractors Form (Inline) -->
+                                <form id="federalFormInline" class="dataSourceForm" data-source="federal" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">States</label>
+                                        <input type="text" class="form-control" id="federalStatesInline"
+                                               value="FL,TX,CA"
+                                               placeholder="e.g., FL,TX,CA">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">NAICS Codes (Optional)</label>
+                                        <input type="text" class="form-control" id="naicsCodesInline"
+                                               value=""
+                                               placeholder="e.g., 236220,238210">
+                                        <small class="text-muted">236220=Commercial Construction, 238=Specialty Trade</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="federalLimitInline">
+                                            <option value="100">100 (Quick)</option>
+                                            <option value="500" selected>500 (Standard)</option>
+                                            <option value="1000">1,000 (Extended)</option>
+                                        </select>
+                                    </div>
+                                    <div class="alert alert-warning small">
+                                        <i class="bi bi-key me-1"></i>Requires SAM.gov API key (free)
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startFederalBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search Federal Contractors
+                                    </button>
+                                </form>
+
+                                <!-- PPP Loans Form (Inline) -->
+                                <form id="pppFormInline" class="dataSourceForm" data-source="ppp" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">States</label>
+                                        <input type="text" class="form-control" id="pppStatesInline"
+                                               value="FL,TX,CA"
+                                               placeholder="e.g., FL,TX,CA">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Min Loan Amount</label>
+                                        <input type="number" class="form-control" id="minLoanInline"
+                                               value="50000" min="0">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="pppLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startPPPBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search PPP Recipients
+                                    </button>
+                                </form>
+
+                                <!-- Healthcare Form (Inline) -->
+                                <form id="healthcareFormInline" class="dataSourceForm" data-source="healthcare" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">State</label>
+                                        <input type="text" class="form-control" id="healthcareStateInline"
+                                               value="FL"
+                                               placeholder="e.g., FL" maxlength="2">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">City (Optional)</label>
+                                        <input type="text" class="form-control" id="healthcareCityInline"
+                                               value=""
+                                               placeholder="e.g., Miami">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Specialty (Optional)</label>
+                                        <input type="text" class="form-control" id="healthcareSpecialtyInline"
+                                               value=""
+                                               placeholder="e.g., Family Medicine">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="healthcareLimitInline">
+                                            <option value="100">100 (Quick)</option>
+                                            <option value="200" selected>200 (Standard)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startHealthcareBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search Healthcare Providers
+                                    </button>
+                                </form>
+
+                                <!-- Aviation Form (Inline) -->
+                                <form id="aviationFormInline" class="dataSourceForm" data-source="aviation" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">States</label>
+                                        <input type="text" class="form-control" id="aviationStatesInline"
+                                               value="FL,TX,CA"
+                                               placeholder="e.g., FL,TX,CA">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="aviationLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="2500">2,500 (Extended)</option>
+                                        </select>
+                                    </div>
+                                    <div class="alert alert-info small">
+                                        <i class="bi bi-info-circle me-1"></i>Aviation data coming soon
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startAviationBtnInline" disabled>
+                                        <i class="bi bi-play-fill me-1"></i> Search Aircraft Owners
                                     </button>
                                 </form>
                             </div>
                         </div>
 
-                        <!-- Scoring Guide -->
-                        <div class="card">
+                        <!-- Data Source Info Card -->
+                        <div class="card" id="sourceInfoCard">
                             <div class="card-header">
-                                <i class="bi bi-star me-2"></i>Scoring Guide
+                                <i class="bi bi-info-circle me-2"></i>About This Data
                             </div>
-                            <div class="card-body small">
-                                <table class="table table-sm mb-0">
-                                    <tr><td>Base Score</td><td class="text-end">+50</td></tr>
-                                    <tr><td>5-20 trucks (sweet spot)</td><td class="text-end">+30</td></tr>
-                                    <tr><td>2-4 trucks</td><td class="text-end">+20</td></tr>
-                                    <tr><td>21-35 trucks</td><td class="text-end">+15</td></tr>
-                                    <tr><td>Has phone</td><td class="text-end">+10</td></tr>
-                                    <tr><td>Has MC authority</td><td class="text-end">+10</td></tr>
-                                </table>
-                                <hr>
-                                <div><span class="badge badge-hot">70+</span> Hot - Call first</div>
-                                <div><span class="badge badge-medium">50-69</span> Medium - Email sequence</div>
-                                <div><span class="badge bg-secondary">&lt;50</span> Lower - Nurture</div>
+                            <div class="card-body small" id="sourceInfoBody">
+                                <p><strong>Source:</strong> FMCSA/DOT Open Data</p>
+                                <p><strong>Coverage:</strong> ~500,000 active motor carriers</p>
+                                <p class="mb-0"><strong>Includes:</strong> Company name, DOT#, trucks, drivers, phone, address</p>
                             </div>
                         </div>
                     </div>
@@ -2713,6 +2956,296 @@
                 document.getElementById('ctDownloadAll').href = `/api/download/${job.output_file}`;
             }
         }
+
+        // Data Source Dropdown Handler
+        const dataSourceSelect = document.getElementById('dataSourceSelect');
+        const sourceInfoBody = document.getElementById('sourceInfoBody');
+        
+        const dataSourceInfo = {
+            trucking: {
+                source: 'FMCSA/DOT Open Data',
+                coverage: '~500,000 active motor carriers',
+                includes: 'Company name, DOT#, trucks, drivers, phone, address'
+            },
+            aviation: {
+                source: 'FAA Aircraft Registry',
+                coverage: '~350,000 registered aircraft owners',
+                includes: 'Owner name, address, aircraft info'
+            },
+            ca_contractors: {
+                source: 'CA Contractors State License Board',
+                coverage: '~285,000 licensed CA contractors',
+                includes: 'Business name, license holder, phone, license type, workers comp'
+            },
+            ct_licenses: {
+                source: 'Connecticut Open Data Portal',
+                coverage: '2.5M+ licensed businesses and professionals',
+                includes: 'Business name, address, license type, entity type, expiration'
+            },
+            wa_contractors: {
+                source: 'Washington State Open Data',
+                coverage: '~150,000 licensed contractors',
+                includes: 'Business name, owner name, phone, address, specialty'
+            },
+            restaurants: {
+                source: 'NYC DOHMH Health Inspections',
+                coverage: '27,000+ NYC restaurants',
+                includes: 'Restaurant name, address, phone, cuisine, inspection grade'
+            },
+            healthcare: {
+                source: 'CMS NPI Registry',
+                coverage: '~4 million healthcare providers',
+                includes: 'Provider name, specialty, address, phone'
+            },
+            federal: {
+                source: 'SAM.gov Entity API',
+                coverage: '~500,000 federal contractors',
+                includes: 'Company name, address, contract info, NAICS codes'
+            },
+            ppp: {
+                source: 'SBA PPP Loan Data',
+                coverage: '~12 million PPP loan recipients',
+                includes: 'Business name, address, loan amount, industry'
+            }
+        };
+
+        dataSourceSelect.addEventListener('change', function() {
+            const source = this.value;
+            
+            // Hide all forms
+            document.querySelectorAll('.dataSourceForm').forEach(form => {
+                form.style.display = 'none';
+            });
+            
+            // Show the appropriate form
+            if (source === 'trucking') {
+                document.getElementById('prospectForm').style.display = 'block';
+            } else if (source === 'wa_contractors') {
+                document.getElementById('waContractorsForm').style.display = 'block';
+            } else if (source === 'ca_contractors') {
+                document.getElementById('caContractorsFormInline').style.display = 'block';
+            } else if (source === 'ct_licenses') {
+                document.getElementById('ctLicensesFormInline').style.display = 'block';
+            } else if (source === 'restaurants') {
+                document.getElementById('restaurantsFormInline').style.display = 'block';
+            } else if (source === 'federal') {
+                document.getElementById('federalFormInline').style.display = 'block';
+            } else if (source === 'ppp') {
+                document.getElementById('pppFormInline').style.display = 'block';
+            } else if (source === 'healthcare') {
+                document.getElementById('healthcareFormInline').style.display = 'block';
+            } else if (source === 'aviation') {
+                document.getElementById('aviationFormInline').style.display = 'block';
+            }
+            
+            // Update info card
+            const info = dataSourceInfo[source];
+            if (info) {
+                sourceInfoBody.innerHTML = `
+                    <p><strong>Source:</strong> ${info.source}</p>
+                    <p><strong>Coverage:</strong> ${info.coverage}</p>
+                    <p class="mb-0"><strong>Includes:</strong> ${info.includes}</p>
+                `;
+            }
+        });
+
+        // WA Contractors Search
+        let waJobId = null;
+        let waPollInterval = null;
+
+        document.getElementById('waContractorsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const data = {
+                cities: document.getElementById('waCities').value,
+                counties: document.getElementById('waCounties').value,
+                business_name: document.getElementById('waBusinessName').value,
+                active_only: true,
+                limit: document.getElementById('waLimit').value
+            };
+
+            document.getElementById('prospectProgress').style.display = 'block';
+            document.getElementById('startWAContractorsBtn').disabled = true;
+            document.getElementById('startWAContractorsBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+
+            try {
+                const response = await fetch('/api/wa-contractors', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                waJobId = result.job_id;
+
+                waPollInterval = setInterval(pollWAStatus, 1000);
+            } catch (error) {
+                alert('Error starting search: ' + error.message);
+                resetWAForm();
+            }
+        });
+
+        async function pollWAStatus() {
+            try {
+                const response = await fetch(`/api/job/${waJobId}`);
+                const job = await response.json();
+
+                document.getElementById('progressBar').style.width = job.progress + '%';
+                document.getElementById('progressMessage').textContent = job.progress_message;
+
+                if (job.status === 'completed') {
+                    clearInterval(waPollInterval);
+                    showWAResults(job);
+                } else if (job.status === 'failed') {
+                    clearInterval(waPollInterval);
+                    alert('Search failed: ' + job.error);
+                    resetWAForm();
+                }
+            } catch (error) {
+                clearInterval(waPollInterval);
+                alert('Error checking status: ' + error.message);
+                resetWAForm();
+            }
+        }
+
+        function resetWAForm() {
+            document.getElementById('prospectProgress').style.display = 'none';
+            document.getElementById('startWAContractorsBtn').disabled = false;
+            document.getElementById('startWAContractorsBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search WA Contractors';
+        }
+
+        function showWAResults(job) {
+            document.getElementById('prospectProgress').style.display = 'none';
+            document.getElementById('prospectResults').style.display = 'block';
+            document.getElementById('startWAContractorsBtn').disabled = false;
+            document.getElementById('startWAContractorsBtn').innerHTML = '<i class="bi bi-play-fill me-1"></i> Search WA Contractors';
+
+            const stats = job.stats || {};
+            document.getElementById('totalCount').textContent = formatNumber(stats.total || 0);
+            document.getElementById('hotCount').textContent = formatNumber(stats.hot_count || 0);
+            document.getElementById('phoneCount').textContent = formatNumber(stats.with_phone || stats.hot_count || 0);
+            document.getElementById('mediumCount').textContent = formatNumber(Math.max(0, (stats.total || 0) - (stats.hot_count || 0)));
+
+            if (job.output_file) {
+                document.getElementById('downloadAllBtn').href = `/api/download/${job.output_file}`;
+            }
+        }
+
+        // Generic inline form handlers that use existing API endpoints
+        function setupInlineFormHandler(formId, btnId, apiEndpoint, getDataFn, resetBtnText) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            
+            let jobId = null;
+            let pollInterval = null;
+            
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const data = getDataFn();
+                
+                document.getElementById('prospectProgress').style.display = 'block';
+                document.getElementById('prospectResults').style.display = 'none';
+                document.getElementById(btnId).disabled = true;
+                document.getElementById(btnId).innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Running...';
+                
+                try {
+                    const response = await fetch(apiEndpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    const result = await response.json();
+                    jobId = result.job_id;
+                    
+                    pollInterval = setInterval(async () => {
+                        try {
+                            const statusResp = await fetch(`/api/job/${jobId}`);
+                            const job = await statusResp.json();
+                            
+                            document.getElementById('progressBar').style.width = job.progress + '%';
+                            document.getElementById('progressMessage').textContent = job.progress_message;
+                            
+                            if (job.status === 'completed') {
+                                clearInterval(pollInterval);
+                                document.getElementById('prospectProgress').style.display = 'none';
+                                document.getElementById('prospectResults').style.display = 'block';
+                                document.getElementById(btnId).disabled = false;
+                                document.getElementById(btnId).innerHTML = resetBtnText;
+                                
+                                const stats = job.stats || {};
+                                document.getElementById('totalCount').textContent = formatNumber(stats.total || 0);
+                                document.getElementById('hotCount').textContent = formatNumber(stats.hot_count || 0);
+                                document.getElementById('phoneCount').textContent = formatNumber(stats.with_phone || stats.hot_count || 0);
+                                document.getElementById('mediumCount').textContent = formatNumber(Math.max(0, (stats.total || 0) - (stats.hot_count || 0)));
+                                
+                                if (job.output_file) {
+                                    document.getElementById('downloadAllBtn').href = `/api/download/${job.output_file}`;
+                                }
+                            } else if (job.status === 'failed') {
+                                clearInterval(pollInterval);
+                                alert('Search failed: ' + job.error);
+                                document.getElementById('prospectProgress').style.display = 'none';
+                                document.getElementById(btnId).disabled = false;
+                                document.getElementById(btnId).innerHTML = resetBtnText;
+                            }
+                        } catch (error) {
+                            clearInterval(pollInterval);
+                            alert('Error checking status: ' + error.message);
+                            document.getElementById('prospectProgress').style.display = 'none';
+                            document.getElementById(btnId).disabled = false;
+                            document.getElementById(btnId).innerHTML = resetBtnText;
+                        }
+                    }, 1000);
+                } catch (error) {
+                    alert('Error starting search: ' + error.message);
+                    document.getElementById('prospectProgress').style.display = 'none';
+                    document.getElementById(btnId).disabled = false;
+                    document.getElementById(btnId).innerHTML = resetBtnText;
+                }
+            });
+        }
+
+        // Setup inline form handlers
+        setupInlineFormHandler('caContractorsFormInline', 'startCAContractorsBtnInline', '/api/ca-contractors', () => ({
+            license_types: document.getElementById('caLicenseTypesInline').value,
+            cities: document.getElementById('caCitiesInline').value,
+            active_only: true,
+            has_workers_comp: document.getElementById('hasWorkersCompInline').checked,
+            limit: document.getElementById('caLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search CA Contractors');
+
+        setupInlineFormHandler('ctLicensesFormInline', 'startCTLicensesBtnInline', '/api/ct-licenses', () => ({
+            credential_types: document.getElementById('ctCredentialTypesInline').value,
+            cities: document.getElementById('ctCitiesInline').value,
+            active_only: true,
+            businesses_only: document.getElementById('ctBusinessesOnlyInline').checked,
+            limit: document.getElementById('ctLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search CT Licenses');
+
+        setupInlineFormHandler('restaurantsFormInline', 'startRestaurantsBtnInline', '/api/restaurants', () => ({
+            boroughs: document.getElementById('boroughsInline').value,
+            cuisines: document.getElementById('cuisinesInline').value,
+            limit: document.getElementById('restaurantLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search NYC Restaurants');
+
+        setupInlineFormHandler('federalFormInline', 'startFederalBtnInline', '/api/federal-contractors', () => ({
+            states: document.getElementById('federalStatesInline').value,
+            naics_codes: document.getElementById('naicsCodesInline').value,
+            limit: document.getElementById('federalLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search Federal Contractors');
+
+        setupInlineFormHandler('pppFormInline', 'startPPPBtnInline', '/api/ppp', () => ({
+            states: document.getElementById('pppStatesInline').value,
+            min_loan_amount: document.getElementById('minLoanInline').value,
+            limit: document.getElementById('pppLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search PPP Recipients');
+
+        setupInlineFormHandler('healthcareFormInline', 'startHealthcareBtnInline', '/api/healthcare', () => ({
+            state: document.getElementById('healthcareStateInline').value,
+            city: document.getElementById('healthcareCityInline').value,
+            specialty: document.getElementById('healthcareSpecialtyInline').value,
+            limit: document.getElementById('healthcareLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search Healthcare Providers');
 
         // Initial load
         loadFiles();

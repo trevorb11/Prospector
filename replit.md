@@ -14,6 +14,7 @@ Prospector is a lead generation and scoring tool designed for merchant cash adva
 - PPP Loan Recipients (SBA) - Businesses that used pandemic financing
 - California Contractors (CSLB) - Licensed CA contractors with equipment needs
 - Connecticut Licenses (data.ct.gov) - 2.5M+ licensed CT businesses (contractors, CPAs, real estate, etc.)
+- Washington Contractors (data.wa.gov) - ~150,000 licensed WA contractors with phone numbers
 
 The application provides three interfaces: a web UI (Flask-based), a CLI (Click-based), and programmatic API access. It's optimized for deployment on Replit.
 
@@ -43,6 +44,7 @@ The codebase follows a modular architecture with clear separation of concerns:
   - PPP Loans: SBA public data for PPP loan recipients
   - CA Contractors: CSLB for California licensed contractors
   - CT Licenses: Connecticut Open Data Portal via Socrata for licensed businesses
+  - WA Contractors: Washington State Open Data via Socrata for licensed contractors
 
 - **Exporters** (`prospector/exporters/`): Output format handlers
   - CSV and Excel export with automatic "hot prospects" filtering

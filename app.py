@@ -872,11 +872,13 @@ def run_wa_contractors_job(job: ProspectorJob):
             df.to_csv(output_path, index=False)
             job.output_file = output_filename
 
-            hot_prospects = [p for p in prospects if p.phone]
+            with_phone = [p for p in prospects if p.phone]
+            hot_prospects = [p for p in prospects if p.score >= 70]
             
             job.stats = {
                 "total": len(prospects),
                 "hot_count": len(hot_prospects),
+                "with_phone": len(with_phone),
                 "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
             }
         else:
