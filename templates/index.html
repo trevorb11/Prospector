@@ -274,6 +274,7 @@
                                     <optgroup label="Government & Finance">
                                         <option value="federal">Federal Contractors (SAM.gov)</option>
                                         <option value="ppp">PPP Loan Recipients (SBA)</option>
+                                        <option value="ct-ucc">CT UCC Filings (Liens)</option>
                                     </optgroup>
                                 </select>
                             </div>
@@ -545,6 +546,47 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary w-100" id="startHealthcareBtnInline">
                                         <i class="bi bi-play-fill me-1"></i> Search Healthcare Providers
+                                    </button>
+                                </form>
+
+                                <!-- CT UCC Form -->
+                                <form id="ctUCCFormInline" class="dataSourceForm" data-source="ct-ucc" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Debtor Name (Optional)</label>
+                                        <input type="text" class="form-control" id="ctUCCDebtorInline"
+                                               value=""
+                                               placeholder="e.g., ABC Corp">
+                                        <small class="text-muted">Search by business name that has the lien</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Secured Party (Optional)</label>
+                                        <input type="text" class="form-control" id="ctUCCSecuredPartyInline"
+                                               value=""
+                                               placeholder="e.g., First National Bank">
+                                        <small class="text-muted">Search by lender/creditor name</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Cities (Optional)</label>
+                                        <input type="text" class="form-control" id="ctUCCCitiesInline"
+                                               value=""
+                                               placeholder="e.g., Hartford, New Haven">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
+                                        <input type="date" class="form-control" id="ctUCCFiledAfterInline"
+                                               value="">
+                                        <small class="text-muted">Only show filings after this date</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Max Records</label>
+                                        <select class="form-select" id="ctUCCLimitInline">
+                                            <option value="500">500 (Quick)</option>
+                                            <option value="1000" selected>1,000 (Standard)</option>
+                                            <option value="5000">5,000 (Large)</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startCTUCCBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search CT UCC Filings
                                     </button>
                                 </form>
 
@@ -3006,6 +3048,11 @@
                 source: 'SBA PPP Loan Data',
                 coverage: '~12 million PPP loan recipients',
                 includes: 'Business name, address, loan amount, industry'
+            },
+            'ct-ucc': {
+                source: 'Connecticut Open Data Portal',
+                coverage: 'All active UCC liens filed in Connecticut',
+                includes: 'Debtor name, secured party, lien type, filing date, collateral'
             }
         };
 
@@ -3246,6 +3293,15 @@
             specialty: document.getElementById('healthcareSpecialtyInline').value,
             limit: document.getElementById('healthcareLimitInline').value
         }), '<i class="bi bi-play-fill me-1"></i> Search Healthcare Providers');
+
+        setupInlineFormHandler('ctUCCFormInline', 'startCTUCCBtnInline', '/api/ct-ucc', () => ({
+            debtor_name: document.getElementById('ctUCCDebtorInline').value,
+            secured_party: document.getElementById('ctUCCSecuredPartyInline').value,
+            cities: document.getElementById('ctUCCCitiesInline').value,
+            filed_after: document.getElementById('ctUCCFiledAfterInline').value,
+            active_only: true,
+            limit: document.getElementById('ctUCCLimitInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search CT UCC Filings');
 
         // Initial load
         loadFiles();
