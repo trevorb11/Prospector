@@ -35,6 +35,15 @@ class CTUCCProspector(IndustryProspector):
     def data_source(self) -> str:
         return "Connecticut Open Data (data.ct.gov)"
     
+    def get_industry_name(self) -> str:
+        return self.industry_name
+    
+    def fetch_prospects(self):
+        return []
+    
+    def parse_record(self, raw_record):
+        return self._parse_record(raw_record)
+    
     def search(
         self,
         debtor_name: Optional[str] = None,

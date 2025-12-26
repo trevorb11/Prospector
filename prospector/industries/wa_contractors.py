@@ -31,6 +31,15 @@ class WAContractorProspector(IndustryProspector):
     def data_source(self) -> str:
         return "Washington State Open Data (data.wa.gov)"
     
+    def get_industry_name(self) -> str:
+        return self.industry_name
+    
+    def fetch_prospects(self):
+        return []
+    
+    def parse_record(self, raw_record):
+        return self._parse_record(raw_record)
+    
     def search(
         self,
         cities: Optional[List[str]] = None,
