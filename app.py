@@ -826,6 +826,73 @@ def run_ct_licenses_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_wa_contractors_job(job: ProspectorJob):
+    """Run a Washington State contractors search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Starting WA contractors search..."
+
+        from prospector.industries.wa_contractors import WAContractorProspector
+
+        def progress_callback(progress, message):
+            job.progress = progress
+            job.progress_message = message
+
+        prospector = WAContractorProspector()
+
+        cities = job.config.get("cities")
+        if cities:
+            cities = [c.strip() for c in cities.split(",") if c.strip()]
+        
+        counties = job.config.get("counties")
+        if counties:
+            counties = [c.strip() for c in counties.split(",") if c.strip()]
+
+        prospects = prospector.search(
+            cities=cities if cities else None,
+            counties=counties if counties else None,
+            business_name=job.config.get("business_name"),
+            active_only=job.config.get("active_only", True),
+            limit=job.config.get("limit", 1000),
+            progress_callback=progress_callback
+        )
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"wa_contractors_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            hot_prospects = [p for p in prospects if p.phone]
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len(hot_prospects),
+                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+            }
+        else:
+            job.stats = {"total": 0, "message": "No contractors found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 def run_npi_lookup_job(job: ProspectorJob):
     """Run an NPI lookup job."""
     try:
@@ -1182,6 +1249,29 @@ def start_ct_licenses_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_ct_licenses_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/wa-contractors", methods=["POST"])
+def start_wa_contractors_search():
+    """Start a new Washington State contractors prospect search job."""
+    data = request.json or {}
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "cities": data.get("cities", ""),
+        "counties": data.get("counties", ""),
+        "business_name": data.get("business_name", ""),
+        "active_only": data.get("active_only", True),
+        "limit": int(data.get("limit", 1000)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_wa_contractors_job, args=(job,))
     thread.daemon = True
     thread.start()
 
