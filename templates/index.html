@@ -3177,7 +3177,10 @@
             document.getElementById('mediumCount').textContent = formatNumber(Math.max(0, (stats.total || 0) - (stats.hot_count || 0)));
 
             if (job.output_file) {
-                document.getElementById('downloadAllBtn').href = `/api/download/${job.output_file}`;
+                const dlBtn = document.getElementById('downloadAllBtn');
+                if (dlBtn) {
+                    dlBtn.href = `/api/download/${job.output_file}`;
+                }
             }
         }
 
@@ -3229,7 +3232,10 @@
                                 document.getElementById('mediumCount').textContent = formatNumber(Math.max(0, (stats.total || 0) - (stats.hot_count || 0)));
                                 
                                 if (job.output_file) {
-                                    document.getElementById('downloadAllBtn').href = `/api/download/${job.output_file}`;
+                                    const dlBtn = document.getElementById('downloadAllBtn');
+                                    if (dlBtn) {
+                                        dlBtn.href = `/api/download/${job.output_file}`;
+                                    }
                                 }
                             } else if (job.status === 'failed') {
                                 clearInterval(pollInterval);
