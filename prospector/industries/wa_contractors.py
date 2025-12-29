@@ -143,9 +143,9 @@ class WAContractorProspector(IndustryProspector):
             progress_callback(85, f"Scoring {len(prospects):,} prospects...")
         
         for i, prospect in enumerate(prospects):
-            prospect.score = self._calculate_score(prospect, all_records[i] if i < len(all_records) else {})
+            prospect.prospect_score = self._calculate_score(prospect, all_records[i] if i < len(all_records) else {})
         
-        prospects.sort(key=lambda x: x.score, reverse=True)
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         
         if progress_callback:
             progress_callback(100, f"Found {len(prospects):,} WA contractors")
@@ -183,22 +183,16 @@ class WAContractorProspector(IndustryProspector):
             state=state,
             zip_code=zip_code[:5] if zip_code else None,
             phone=phone if phone else None,
-            email=None,
-            contact_name=record.get('primaryprincipalname', ''),
-            industry="Contractor",
-            sub_industry=record.get('specialty', ''),
-            employee_count=None,
-            revenue=None,
-            years_in_business=None,
-            score=0,
+            industry_id=record.get('ubi', ''),
             source=self.data_source,
-            source_id=record.get('ubi', ''),
-            raw_data={
+            industry_data={
                 'ubi': record.get('ubi', ''),
                 'license_number': record.get('contractorlicensenumber', ''),
                 'county': record.get('county', ''),
                 'principal_name': record.get('primaryprincipalname', ''),
                 'specialty': record.get('specialty', ''),
+                'license_type': record.get('contractorlicensetypecode', ''),
+                'expiration_date': record.get('licenseexpirationdate', ''),
             },
         )
     
@@ -209,7 +203,7 @@ class WAContractorProspector(IndustryProspector):
         if prospect.phone:
             score += 20
         
-        if prospect.contact_name:
+        if prospect.industry_data.get('principal_name'):
             score += 10
         
         if prospect.address:
@@ -218,7 +212,7 @@ class WAContractorProspector(IndustryProspector):
         if prospect.city:
             score += 5
         
-        specialty = record.get('specialty', '').upper() if record else ''
+        specialty = prospect.industry_data.get('specialty', '').upper()
         high_value_specialties = ['GENERAL', 'ELECTRICAL', 'PLUMBING', 'HVAC', 'ROOFING']
         for spec in high_value_specialties:
             if spec in specialty:
