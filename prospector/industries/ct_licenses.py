@@ -91,6 +91,7 @@ class CTLicenseProspector(IndustryProspector):
         active_only: bool = True,
         businesses_only: bool = True,
         limit: int = 1000,
+        offset: int = 0,
         progress_callback: Optional[Callable[[int, str], None]] = None,
     ) -> List[ProspectRecord]:
         """
@@ -103,6 +104,7 @@ class CTLicenseProspector(IndustryProspector):
             active_only: Only return active licenses
             businesses_only: Exclude individual licenses (focus on businesses)
             limit: Maximum records to return
+            offset: Number of records to skip (for pagination)
             progress_callback: Function for progress updates
         """
         if progress_callback:
@@ -128,16 +130,19 @@ class CTLicenseProspector(IndustryProspector):
         where_clause = " AND ".join(where_clauses) if where_clauses else None
         
         if progress_callback:
-            progress_callback(10, "Fetching records from CT data portal...")
+            if offset > 0:
+                progress_callback(10, f"Fetching records starting from {offset:,}...")
+            else:
+                progress_callback(10, "Fetching records from CT data portal...")
         
         all_records = []
-        offset = 0
+        current_offset = offset
         batch_size = 1000
         
         while len(all_records) < limit:
             params = {
                 "$limit": min(batch_size, limit - len(all_records)),
-                "$offset": offset,
+                "$offset": current_offset,
                 "$order": "recordrefreshedon DESC",
             }
             
@@ -153,7 +158,7 @@ class CTLicenseProspector(IndustryProspector):
                     break
                 
                 all_records.extend(records)
-                offset += len(records)
+                current_offset += len(records)
                 
                 progress_pct = min(70, 10 + int(60 * len(all_records) / limit))
                 if progress_callback:

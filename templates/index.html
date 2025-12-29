@@ -346,14 +346,25 @@
                                                placeholder="Search by business name">
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Max Records</label>
-                                        <select class="form-select" id="waLimit">
-                                            <option value="500">500 (Quick)</option>
-                                            <option value="1000" selected>1,000 (Standard)</option>
-                                            <option value="2500">2,500 (Extended)</option>
-                                            <option value="5000">5,000 (Large)</option>
-                                        </select>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Max Records</label>
+                                                <select class="form-select" id="waLimit">
+                                                    <option value="500">500 (Quick)</option>
+                                                    <option value="1000" selected>1,000 (Standard)</option>
+                                                    <option value="2500">2,500 (Extended)</option>
+                                                    <option value="5000">5,000 (Large)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Start From Record</label>
+                                                <input type="number" class="form-control" id="waOffset" value="0" min="0" step="1000">
+                                                <small class="text-muted">Skip first N records</small>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary w-100" id="startWAContractorsBtn">
@@ -1724,14 +1735,25 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Max Records</label>
-                                        <select class="form-select" id="ctLimit">
-                                            <option value="500">500 (Quick)</option>
-                                            <option value="1000" selected>1,000 (Standard)</option>
-                                            <option value="2500">2,500 (Extended)</option>
-                                            <option value="5000">5,000 (Large)</option>
-                                        </select>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Max Records</label>
+                                                <select class="form-select" id="ctLimit">
+                                                    <option value="500">500 (Quick)</option>
+                                                    <option value="1000" selected>1,000 (Standard)</option>
+                                                    <option value="2500">2,500 (Extended)</option>
+                                                    <option value="5000">5,000 (Large)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-semibold">Start From Record</label>
+                                                <input type="number" class="form-control" id="ctOffset" value="0" min="0" step="1000">
+                                                <small class="text-muted">Skip first N records</small>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <button type="submit" class="btn btn-primary w-100" id="startCTLicensesBtn">
@@ -2927,7 +2949,8 @@
                 cities: document.getElementById('ctCities').value,
                 active_only: true,
                 businesses_only: document.getElementById('ctBusinessesOnly').checked,
-                limit: document.getElementById('ctLimit').value
+                limit: document.getElementById('ctLimit').value,
+                offset: parseInt(document.getElementById('ctOffset').value) || 0
             };
 
             document.getElementById('ctEmpty').style.display = 'none';
@@ -3111,7 +3134,8 @@
                 counties: document.getElementById('waCounties').value,
                 business_name: document.getElementById('waBusinessName').value,
                 active_only: true,
-                limit: document.getElementById('waLimit').value
+                limit: document.getElementById('waLimit').value,
+                offset: parseInt(document.getElementById('waOffset').value) || 0
             };
 
             document.getElementById('prospectProgress').style.display = 'block';

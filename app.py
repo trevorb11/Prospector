@@ -788,6 +788,7 @@ def run_ct_licenses_job(job: ProspectorJob):
             active_only=job.config.get("active_only", True),
             businesses_only=job.config.get("businesses_only", True),
             limit=job.config.get("limit", 1000),
+            offset=job.config.get("offset", 0),
             progress_callback=progress_callback
         )
 
@@ -855,6 +856,7 @@ def run_wa_contractors_job(job: ProspectorJob):
             business_name=job.config.get("business_name"),
             active_only=job.config.get("active_only", True),
             limit=job.config.get("limit", 1000),
+            offset=job.config.get("offset", 0),
             progress_callback=progress_callback
         )
 
@@ -1312,6 +1314,7 @@ def start_ct_licenses_search():
         "active_only": data.get("active_only", True),
         "businesses_only": data.get("businesses_only", True),
         "limit": int(data.get("limit", 1000)),
+        "offset": int(data.get("offset", 0)),
     })
 
     jobs[job_id] = job
@@ -1335,6 +1338,7 @@ def start_wa_contractors_search():
         "business_name": data.get("business_name", ""),
         "active_only": data.get("active_only", True),
         "limit": int(data.get("limit", 1000)),
+        "offset": int(data.get("offset", 0)),
     })
 
     jobs[job_id] = job
