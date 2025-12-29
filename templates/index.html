@@ -2995,7 +2995,10 @@
             document.getElementById('ctAvgScore').textContent = stats.avg_score || 0;
 
             if (job.output_file) {
-                document.getElementById('ctDownloadAll').href = `/api/download/${job.output_file}`;
+                const downloadBtn = document.getElementById('ctDownloadAll');
+                if (downloadBtn) {
+                    downloadBtn.href = `/api/download/${job.output_file}`;
+                }
             }
         }
 

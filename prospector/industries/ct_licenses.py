@@ -191,7 +191,7 @@ class CTLicenseProspector(IndustryProspector):
             progress_callback(85, f"Scoring {len(prospects):,} prospects...")
         
         for prospect in prospects:
-            prospect.prospect_score = self._calculate_score(prospect, record)
+            prospect.prospect_score = self._calculate_score(prospect)
         
         prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         
@@ -295,11 +295,12 @@ class CTLicenseProspector(IndustryProspector):
             },
         )
     
-    def _calculate_score(self, prospect: ProspectRecord, record: dict) -> int:
-        """Calculate MCA prospect score."""
+    def _calculate_score(self, prospect: ProspectRecord) -> int:
+        """Calculate MCA prospect score based on industry_data."""
         score = 50
+        data = prospect.industry_data or {}
         
-        entity_type = record.get('type', '')
+        entity_type = data.get('entity_type', '')
         if entity_type in ['CORPORATION', 'LIMITED LIABILITY COMPANY']:
             score += 15
         elif entity_type in ['BUSINESS', 'PARTNERSHIP']:
@@ -309,7 +310,7 @@ class CTLicenseProspector(IndustryProspector):
         elif entity_type == 'INDIVIDUAL':
             score -= 10
         
-        credential = record.get('credential', '')
+        credential = data.get('credential', '')
         high_value_credentials = [
             'HOME IMPROVEMENT CONTRACTOR',
             'GENERAL CONTRACTOR',
@@ -322,10 +323,10 @@ class CTLicenseProspector(IndustryProspector):
         elif credential in self.MCA_RELEVANT_CREDENTIALS:
             score += 10
         
-        if record.get('status') == 'ACTIVE':
+        if data.get('status') == 'ACTIVE':
             score += 10
         
-        expiration = record.get('expirationdate', '')
+        expiration = data.get('expiration_date', '')
         if expiration:
             try:
                 exp_date = datetime.fromisoformat(expiration.replace('Z', '+00:00'))
