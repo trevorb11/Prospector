@@ -743,7 +743,7 @@ def run_restaurant_job(job: ProspectorJob):
             job.stats = {
                 "total": len(prospects),
                 "hot_count": len(hot_prospects),
-                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
             }
         else:
             job.stats = {"total": 0, "message": "No restaurants found"}
@@ -805,12 +805,12 @@ def run_ct_licenses_job(job: ProspectorJob):
             df.to_csv(output_path, index=False)
             job.output_file = output_filename
 
-            hot_prospects = [p for p in prospects if p.score >= 70]
+            hot_prospects = [p for p in prospects if p.prospect_score >= 70]
             
             job.stats = {
                 "total": len(prospects),
                 "hot_count": len(hot_prospects),
-                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
             }
         else:
             job.stats = {"total": 0, "message": "No businesses found"}
@@ -873,13 +873,13 @@ def run_wa_contractors_job(job: ProspectorJob):
             job.output_file = output_filename
 
             with_phone = [p for p in prospects if p.phone]
-            hot_prospects = [p for p in prospects if p.score >= 70]
+            hot_prospects = [p for p in prospects if p.prospect_score >= 70]
             
             job.stats = {
                 "total": len(prospects),
                 "hot_count": len(hot_prospects),
                 "with_phone": len(with_phone),
-                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
             }
         else:
             job.stats = {"total": 0, "message": "No contractors found"}
@@ -939,13 +939,13 @@ def run_ct_ucc_job(job: ProspectorJob):
             df.to_csv(output_path, index=False)
             job.output_file = output_filename
 
-            hot_prospects = [p for p in prospects if p.score >= 70]
+            hot_prospects = [p for p in prospects if p.prospect_score >= 70]
             
             job.stats = {
                 "total": len(prospects),
                 "hot_count": len(hot_prospects),
                 "with_phone": 0,
-                "avg_score": round(sum(p.score for p in prospects) / len(prospects)) if prospects else 0
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
             }
         else:
             job.stats = {"total": 0, "message": "No UCC filings found"}
