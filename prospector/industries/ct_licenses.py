@@ -191,9 +191,9 @@ class CTLicenseProspector(IndustryProspector):
             progress_callback(85, f"Scoring {len(prospects):,} prospects...")
         
         for prospect in prospects:
-            prospect.score = self._calculate_score(prospect, record)
+            prospect.prospect_score = self._calculate_score(prospect, record)
         
-        prospects.sort(key=lambda x: x.score, reverse=True)
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         
         if progress_callback:
             progress_callback(100, f"Found {len(prospects):,} CT licensed businesses")
@@ -270,22 +270,21 @@ class CTLicenseProspector(IndustryProspector):
         
         return ProspectRecord(
             company_name=name,
-            address=', '.join(address_parts) if address_parts else None,
+            dba_name=name if record.get('type') == 'INDIVIDUAL' else None,
+            address=record.get('address'),
             city=city,
             state=state,
             zip_code=zip_code[:5] if zip_code else None,
             phone=None,
             email=None,
-            contact_name=name if record.get('type') == 'INDIVIDUAL' else None,
-            industry=record.get('credential', 'Licensed Business'),
-            sub_industry=record.get('type', ''),
+            industry_id=record.get('credentialid', ''),
             employee_count=None,
-            revenue=None,
             years_in_business=None,
-            score=0,
+            prospect_score=0,
             source=self.data_source,
-            source_id=record.get('credentialid', ''),
-            raw_data={
+            industry_data={
+                'credential': record.get('credential', 'Licensed Business'),
+                'entity_type': record.get('type', ''),
                 'credential_type': record.get('credentialtype', ''),
                 'credential_number': record.get('credentialnumber', ''),
                 'full_credential_code': record.get('fullcredentialcode', ''),
@@ -293,7 +292,6 @@ class CTLicenseProspector(IndustryProspector):
                 'status_reason': record.get('statusreason', ''),
                 'issue_date': record.get('issuedate', ''),
                 'expiration_date': expiration,
-                'entity_type': record.get('type', ''),
             },
         )
     
