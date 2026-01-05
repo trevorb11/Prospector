@@ -44,3 +44,8 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[userenv]
+
+[userenv.shared]
+SAM_API_KEY = "SAM-80afa3f9-8e0f-4596-adb5-b38244a5e018"
