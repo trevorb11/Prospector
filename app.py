@@ -27,6 +27,7 @@ from flask import (
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "prospector-secret-key-change-in-production")
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 MB max file upload
 
 # Configuration
 OUTPUT_DIR = Path("output")
