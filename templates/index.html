@@ -274,7 +274,11 @@
                                     <optgroup label="Government & Finance">
                                         <option value="federal">Federal Contractors (SAM.gov)</option>
                                         <option value="ppp">PPP Loan Recipients (SBA)</option>
-                                        <option value="ct-ucc">CT UCC Filings (Liens)</option>
+                                    </optgroup>
+                                    <optgroup label="UCC Filings (Liens)">
+                                        <option value="ct-ucc">Connecticut UCC Filings</option>
+                                        <option value="or-ucc">Oregon UCC Filings</option>
+                                        <option value="co-ucc">Colorado UCC Filings</option>
                                     </optgroup>
                                 </select>
                             </div>
@@ -598,6 +602,90 @@
                                     </div>
                                     <button type="submit" class="btn btn-primary w-100" id="startCTUCCBtnInline">
                                         <i class="bi bi-play-fill me-1"></i> Search CT UCC Filings
+                                    </button>
+                                </form>
+
+                                <!-- OR UCC Form -->
+                                <form id="orUCCFormInline" class="dataSourceForm" data-source="or-ucc" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Debtor Name (Optional)</label>
+                                        <input type="text" class="form-control" id="orUCCDebtorInline"
+                                               value=""
+                                               placeholder="e.g., ABC Corp">
+                                        <small class="text-muted">Search by business name that has the lien</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Secured Party (Optional)</label>
+                                        <input type="text" class="form-control" id="orUCCSecuredPartyInline"
+                                               value=""
+                                               placeholder="e.g., First National Bank">
+                                        <small class="text-muted">Search by lender/creditor name</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
+                                        <input type="date" class="form-control" id="orUCCFiledAfterInline"
+                                               value="">
+                                        <small class="text-muted">Only show filings after this date</small>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Max Records</label>
+                                            <select class="form-select" id="orUCCLimitInline">
+                                                <option value="500">500 (Quick)</option>
+                                                <option value="1000" selected>1,000</option>
+                                                <option value="5000">5,000</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Start From</label>
+                                            <input type="number" class="form-control" id="orUCCOffsetInline" value="0" min="0" step="1000">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startORUCCBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search OR UCC Filings
+                                    </button>
+                                </form>
+
+                                <!-- CO UCC Form -->
+                                <form id="coUCCFormInline" class="dataSourceForm" data-source="co-ucc" style="display: none;">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Debtor Name (Optional)</label>
+                                        <input type="text" class="form-control" id="coUCCDebtorInline"
+                                               value=""
+                                               placeholder="e.g., ABC Corp">
+                                        <small class="text-muted">Search by business name that has the lien</small>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Filing Type (Optional)</label>
+                                        <select class="form-select" id="coUCCFilingTypeInline">
+                                            <option value="">All Types</option>
+                                            <option value="UCC1">UCC1 (Initial Filing)</option>
+                                            <option value="UCC3">UCC3 (Amendment)</option>
+                                            <option value="UCC5">UCC5 (Correction)</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
+                                        <input type="date" class="form-control" id="coUCCFiledAfterInline"
+                                               value="">
+                                        <small class="text-muted">Only show filings after this date</small>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Max Records</label>
+                                            <select class="form-select" id="coUCCLimitInline">
+                                                <option value="500">500 (Quick)</option>
+                                                <option value="1000" selected>1,000</option>
+                                                <option value="5000">5,000</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Start From</label>
+                                            <input type="number" class="form-control" id="coUCCOffsetInline" value="0" min="0" step="1000">
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" id="startCOUCCBtnInline">
+                                        <i class="bi bi-play-fill me-1"></i> Search CO UCC Filings
                                     </button>
                                 </form>
 
@@ -3335,6 +3423,22 @@
             active_only: true,
             limit: document.getElementById('ctUCCLimitInline').value
         }), '<i class="bi bi-play-fill me-1"></i> Search CT UCC Filings');
+
+        setupInlineFormHandler('orUCCFormInline', 'startORUCCBtnInline', '/api/or-ucc', () => ({
+            debtor_name: document.getElementById('orUCCDebtorInline').value,
+            secured_party: document.getElementById('orUCCSecuredPartyInline').value,
+            filed_after: document.getElementById('orUCCFiledAfterInline').value,
+            limit: document.getElementById('orUCCLimitInline').value,
+            offset: document.getElementById('orUCCOffsetInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search OR UCC Filings');
+
+        setupInlineFormHandler('coUCCFormInline', 'startCOUCCBtnInline', '/api/co-ucc', () => ({
+            debtor_name: document.getElementById('coUCCDebtorInline').value,
+            filing_type: document.getElementById('coUCCFilingTypeInline').value,
+            filed_after: document.getElementById('coUCCFiledAfterInline').value,
+            limit: document.getElementById('coUCCLimitInline').value,
+            offset: document.getElementById('coUCCOffsetInline').value
+        }), '<i class="bi bi-play-fill me-1"></i> Search CO UCC Filings');
 
         // Initial load
         loadFiles();

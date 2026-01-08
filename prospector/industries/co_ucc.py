@@ -1,0 +1,301 @@
+"""
+Colorado UCC (Uniform Commercial Code) Lien Filings Prospector.
+
+Uses Colorado Information Marketplace (data.colorado.gov) via Socrata API.
+Datasets:
+- Filing Info: https://data.colorado.gov/resource/wffy-3uut.json
+- Debtor Info: https://data.colorado.gov/resource/8upq-58vz.json
+
+UCC filings indicate businesses that have used secured financing - 
+valuable for MCA prospecting as it shows prior borrowing activity.
+"""
+
+import os
+import requests
+from datetime import datetime
+from typing import List, Optional, Callable
+from prospector.core.base import IndustryProspector, ProspectRecord
+
+
+class COUCCProspector(IndustryProspector):
+    """Prospector for Colorado UCC Lien Filings."""
+    
+    FILING_URL = "https://data.colorado.gov/resource/wffy-3uut.json"
+    DEBTOR_URL = "https://data.colorado.gov/resource/8upq-58vz.json"
+    
+    def __init__(self, app_token: Optional[str] = None):
+        self.app_token = app_token or os.getenv("SOCRATA_APP_TOKEN")
+        self.session = requests.Session()
+        if self.app_token:
+            self.session.headers['X-App-Token'] = self.app_token
+    
+    @property
+    def industry_name(self) -> str:
+        return "CO UCC Filings"
+    
+    @property
+    def data_source(self) -> str:
+        return "Colorado Information Marketplace (data.colorado.gov)"
+    
+    def get_industry_name(self) -> str:
+        return self.industry_name
+    
+    def fetch_prospects(self):
+        return []
+    
+    def parse_record(self, raw_record):
+        return self._parse_record(raw_record)
+    
+    def search(
+        self,
+        debtor_name: Optional[str] = None,
+        filing_type: Optional[str] = None,
+        filed_after: Optional[str] = None,
+        filed_before: Optional[str] = None,
+        limit: int = 1000,
+        offset: int = 0,
+        progress_callback: Optional[Callable[[int, str], None]] = None,
+    ) -> List[ProspectRecord]:
+        """
+        Search Colorado UCC lien filings.
+        
+        Args:
+            debtor_name: Search by debtor (business) name (partial match)
+            filing_type: Filter by filing type (e.g., 'UCC1', 'UCC3')
+            filed_after: Only filings after this date (YYYY-MM-DD)
+            filed_before: Only filings before this date (YYYY-MM-DD)
+            limit: Maximum records to return
+            offset: Number of records to skip (for pagination)
+            progress_callback: Function for progress updates
+        """
+        if progress_callback:
+            if offset > 0:
+                progress_callback(5, f"Fetching CO UCC filings starting from {offset:,}...")
+            else:
+                progress_callback(5, "Building query for CO UCC filings...")
+        
+        where_clauses = []
+        
+        if filing_type:
+            where_clauses.append(f"filing_type='{filing_type}'")
+        
+        if filed_after:
+            where_clauses.append(f"filing_date >= '{filed_after}'")
+        
+        if filed_before:
+            where_clauses.append(f"filing_date <= '{filed_before}'")
+        
+        where_clause = " AND ".join(where_clauses) if where_clauses else None
+        
+        if progress_callback:
+            progress_callback(10, "Fetching records from CO data portal...")
+        
+        all_records = []
+        current_offset = offset
+        batch_size = 1000
+        
+        while len(all_records) < limit:
+            params = {
+                "$limit": min(batch_size, limit - len(all_records)),
+                "$offset": current_offset,
+                "$order": "filing_date DESC",
+            }
+            
+            if where_clause:
+                params["$where"] = where_clause
+            
+            try:
+                response = self.session.get(self.FILING_URL, params=params, timeout=60)
+                response.raise_for_status()
+                records = response.json()
+                
+                if not records:
+                    break
+                
+                all_records.extend(records)
+                current_offset += len(records)
+                
+                progress_pct = min(50, 10 + int(40 * len(all_records) / limit))
+                if progress_callback:
+                    progress_callback(progress_pct, f"Fetched {len(all_records):,} CO filing records...")
+                
+                if len(records) < batch_size:
+                    break
+                    
+            except requests.RequestException as e:
+                if progress_callback:
+                    progress_callback(0, f"API error: {str(e)}")
+                raise
+        
+        if progress_callback:
+            progress_callback(55, f"Enriching with debtor information...")
+        
+        entity_ids = list(set(r.get("entity_id") for r in all_records if r.get("entity_id")))
+        debtor_map = {}
+        
+        if entity_ids and debtor_name:
+            debtor_where = f"upper(debtor_name) like '%{debtor_name.upper()}%'"
+            try:
+                debtor_params = {
+                    "$limit": 5000,
+                    "$where": debtor_where,
+                }
+                response = self.session.get(self.DEBTOR_URL, params=debtor_params, timeout=60)
+                response.raise_for_status()
+                debtor_records = response.json()
+                for dr in debtor_records:
+                    eid = dr.get("entity_id")
+                    if eid:
+                        debtor_map[eid] = dr
+            except:
+                pass
+        elif entity_ids[:500]:
+            for batch_start in range(0, min(len(entity_ids), 500), 100):
+                batch_ids = entity_ids[batch_start:batch_start+100]
+                id_conditions = " OR ".join([f"entity_id='{eid}'" for eid in batch_ids])
+                try:
+                    debtor_params = {
+                        "$limit": 1000,
+                        "$where": f"({id_conditions})",
+                    }
+                    response = self.session.get(self.DEBTOR_URL, params=debtor_params, timeout=60)
+                    response.raise_for_status()
+                    debtor_records = response.json()
+                    for dr in debtor_records:
+                        eid = dr.get("entity_id")
+                        if eid:
+                            debtor_map[eid] = dr
+                except:
+                    pass
+        
+        if progress_callback:
+            progress_callback(75, f"Processing {len(all_records):,} CO UCC filings...")
+        
+        prospects = []
+        for record in all_records:
+            entity_id = record.get("entity_id")
+            debtor_info = debtor_map.get(entity_id, {})
+            prospect = self._parse_record(record, debtor_info)
+            if prospect:
+                if debtor_name:
+                    if debtor_name.upper() in prospect.company_name.upper():
+                        prospects.append(prospect)
+                else:
+                    prospects.append(prospect)
+        
+        if progress_callback:
+            progress_callback(90, "Scoring prospects...")
+        
+        for prospect in prospects:
+            prospect.prospect_score = self._calculate_score(prospect)
+        
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
+        
+        if progress_callback:
+            progress_callback(100, f"Found {len(prospects):,} CO UCC filings")
+        
+        return prospects[:limit]
+    
+    def _parse_record(self, filing: dict, debtor: dict = None) -> Optional[ProspectRecord]:
+        """Parse filing and debtor records into a ProspectRecord."""
+        debtor = debtor or {}
+        
+        debtor_name = debtor.get("debtor_name", "").strip()
+        if not debtor_name:
+            debtor_name = f"Entity #{filing.get('entity_id', 'Unknown')}"
+        
+        address = debtor.get("debtor_address", "")
+        city = debtor.get("debtor_city", "")
+        state = debtor.get("debtor_state", "CO")
+        zip_code = debtor.get("debtor_zip", "")
+        
+        file_date = filing.get("filing_date", "")
+        if file_date:
+            try:
+                file_date = file_date[:10]
+            except:
+                pass
+        
+        lapse_date = filing.get("lapse_date", "")
+        if lapse_date:
+            try:
+                lapse_date = lapse_date[:10]
+            except:
+                pass
+        
+        return ProspectRecord(
+            company_name=debtor_name,
+            address=address,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+            phone="",
+            email="",
+            website="",
+            contact_name="",
+            industry="UCC Lien Filing",
+            employee_count=0,
+            annual_revenue=0,
+            years_in_business=0,
+            prospect_score=0,
+            source="CO UCC Filings",
+            source_id=filing.get("transaction_id", filing.get("entity_id", "")),
+            raw_data={
+                "entity_id": filing.get("entity_id", ""),
+                "transaction_id": filing.get("transaction_id", ""),
+                "filing_type": filing.get("filing_type", ""),
+                "filing_date": file_date,
+                "lapse_date": lapse_date,
+                "financial_statement_type": filing.get("financial_statement_type", ""),
+                "debtor_status": debtor.get("status", ""),
+            }
+        )
+    
+    def _calculate_score(self, prospect: ProspectRecord) -> int:
+        """Calculate a score for UCC-based prospects."""
+        score = 50
+        
+        raw = prospect.raw_data
+        filing_type = raw.get("filing_type", "")
+        if filing_type == "UCC1":
+            score += 15
+        elif filing_type == "UCC3":
+            score += 10
+        
+        file_date = raw.get("filing_date", "")
+        if file_date:
+            try:
+                filed = datetime.strptime(file_date[:10], "%Y-%m-%d")
+                days_ago = (datetime.now() - filed).days
+                if days_ago <= 180:
+                    score += 20
+                elif days_ago <= 365:
+                    score += 10
+                elif days_ago <= 730:
+                    score += 5
+            except:
+                pass
+        
+        if prospect.city:
+            score += 5
+        
+        if prospect.zip_code:
+            score += 5
+        
+        return min(100, score)
+    
+    def get_filing_types(self) -> List[str]:
+        """Get available filing types from the dataset."""
+        params = {
+            "$select": "filing_type",
+            "$group": "filing_type",
+            "$limit": 50,
+        }
+        
+        try:
+            response = self.session.get(self.FILING_URL, params=params, timeout=30)
+            response.raise_for_status()
+            results = response.json()
+            return sorted([r.get("filing_type", "") for r in results if r.get("filing_type")])
+        except:
+            return ["UCC1", "UCC3", "UCC5"]

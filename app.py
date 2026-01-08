@@ -964,6 +964,118 @@ def run_ct_ucc_job(job: ProspectorJob):
         job.completed_at = datetime.now()
 
 
+def run_or_ucc_job(job: ProspectorJob):
+    """Run an Oregon UCC filings prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+
+        from prospector.industries.or_ucc import ORUCCProspector
+
+        prospector = ORUCCProspector()
+
+        def progress_callback(pct, msg):
+            job.progress = pct
+            job.progress_message = msg
+
+        prospects = prospector.search(
+            debtor_name=job.config.get("debtor_name") or None,
+            secured_party=job.config.get("secured_party") or None,
+            filed_after=job.config.get("filed_after") or None,
+            limit=job.config.get("limit", 1000),
+            offset=job.config.get("offset", 0),
+            progress_callback=progress_callback
+        )
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"or_ucc_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            hot_prospects = [p for p in prospects if p.prospect_score >= 70]
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len(hot_prospects),
+                "with_phone": 0,
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
+            }
+        else:
+            job.stats = {"total": 0, "message": "No UCC filings found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+def run_co_ucc_job(job: ProspectorJob):
+    """Run a Colorado UCC filings prospect search job."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+
+        from prospector.industries.co_ucc import COUCCProspector
+
+        prospector = COUCCProspector()
+
+        def progress_callback(pct, msg):
+            job.progress = pct
+            job.progress_message = msg
+
+        prospects = prospector.search(
+            debtor_name=job.config.get("debtor_name") or None,
+            filing_type=job.config.get("filing_type") or None,
+            filed_after=job.config.get("filed_after") or None,
+            limit=job.config.get("limit", 1000),
+            offset=job.config.get("offset", 0),
+            progress_callback=progress_callback
+        )
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"co_ucc_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        if prospects:
+            import pandas as pd
+            records = [p.to_dict() for p in prospects]
+            df = pd.DataFrame(records)
+            df.to_csv(output_path, index=False)
+            job.output_file = output_filename
+
+            hot_prospects = [p for p in prospects if p.prospect_score >= 70]
+            
+            job.stats = {
+                "total": len(prospects),
+                "hot_count": len(hot_prospects),
+                "with_phone": 0,
+                "avg_score": round(sum(p.prospect_score for p in prospects) / len(prospects)) if prospects else 0
+            }
+        else:
+            job.stats = {"total": 0, "message": "No UCC filings found"}
+
+        job.progress = 100
+        job.progress_message = "Complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
 def run_npi_lookup_job(job: ProspectorJob):
     """Run an NPI lookup job."""
     try:
@@ -1370,6 +1482,52 @@ def start_ct_ucc_search():
     jobs[job_id] = job
 
     thread = threading.Thread(target=run_ct_ucc_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/or-ucc", methods=["POST"])
+def start_or_ucc_search():
+    """Start a new Oregon UCC filings prospect search job."""
+    data = request.json or {}
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "debtor_name": data.get("debtor_name", ""),
+        "secured_party": data.get("secured_party", ""),
+        "filed_after": data.get("filed_after", ""),
+        "limit": int(data.get("limit", 1000)),
+        "offset": int(data.get("offset", 0)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_or_ucc_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+@app.route("/api/co-ucc", methods=["POST"])
+def start_co_ucc_search():
+    """Start a new Colorado UCC filings prospect search job."""
+    data = request.json or {}
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "debtor_name": data.get("debtor_name", ""),
+        "filing_type": data.get("filing_type", ""),
+        "filed_after": data.get("filed_after", ""),
+        "limit": int(data.get("limit", 1000)),
+        "offset": int(data.get("offset", 0)),
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_co_ucc_job, args=(job,))
     thread.daemon = True
     thread.start()
 
