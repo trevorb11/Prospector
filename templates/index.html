@@ -3167,6 +3167,16 @@
                 source: 'Connecticut Open Data Portal',
                 coverage: 'All active UCC liens filed in Connecticut',
                 includes: 'Debtor name, secured party, lien type, filing date, collateral'
+            },
+            'or-ucc': {
+                source: 'Oregon Open Data Portal',
+                coverage: 'All UCC lien filings in Oregon',
+                includes: 'Debtor name, secured party, filing date, lapse date'
+            },
+            'co-ucc': {
+                source: 'Colorado Open Data Portal',
+                coverage: 'Millions of UCC filings (daily updates)',
+                includes: 'Debtor name, filing type (UCC1/UCC3/UCC5), filing date'
             }
         };
 
@@ -3197,6 +3207,12 @@
                 document.getElementById('healthcareFormInline').style.display = 'block';
             } else if (source === 'aviation') {
                 document.getElementById('aviationFormInline').style.display = 'block';
+            } else if (source === 'ct-ucc') {
+                document.getElementById('ctUCCFormInline').style.display = 'block';
+            } else if (source === 'or-ucc') {
+                document.getElementById('orUCCFormInline').style.display = 'block';
+            } else if (source === 'co-ucc') {
+                document.getElementById('coUCCFormInline').style.display = 'block';
             }
             
             // Update info card
