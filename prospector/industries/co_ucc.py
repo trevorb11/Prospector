@@ -77,13 +77,13 @@ class COUCCProspector(IndustryProspector):
         where_clauses = []
         
         if filing_type:
-            where_clauses.append(f"filing_type='{filing_type}'")
+            where_clauses.append(f"filingtype='{filing_type}'")
         
         if filed_after:
-            where_clauses.append(f"filing_date >= '{filed_after}'")
+            where_clauses.append(f"filingdate >= '{filed_after}T00:00:00.000'")
         
         if filed_before:
-            where_clauses.append(f"filing_date <= '{filed_before}'")
+            where_clauses.append(f"filingdate <= '{filed_before}T23:59:59.000'")
         
         where_clause = " AND ".join(where_clauses) if where_clauses else None
         
@@ -98,7 +98,7 @@ class COUCCProspector(IndustryProspector):
             params = {
                 "$limit": min(batch_size, limit - len(all_records)),
                 "$offset": current_offset,
-                "$order": "filing_date DESC",
+                "$order": "filingdate DESC",
             }
             
             if where_clause:
@@ -130,11 +130,11 @@ class COUCCProspector(IndustryProspector):
         if progress_callback:
             progress_callback(55, f"Enriching with debtor information...")
         
-        entity_ids = list(set(r.get("entity_id") for r in all_records if r.get("entity_id")))
+        file_ids = list(set(r.get("fileid") for r in all_records if r.get("fileid")))
         debtor_map = {}
         
-        if entity_ids and debtor_name:
-            debtor_where = f"upper(debtor_name) like '%{debtor_name.upper()}%'"
+        if debtor_name:
+            debtor_where = f"upper(organizationname) like '%{debtor_name.upper()}%'"
             try:
                 debtor_params = {
                     "$limit": 5000,
@@ -144,15 +144,15 @@ class COUCCProspector(IndustryProspector):
                 response.raise_for_status()
                 debtor_records = response.json()
                 for dr in debtor_records:
-                    eid = dr.get("entity_id")
-                    if eid:
-                        debtor_map[eid] = dr
+                    fid = dr.get("fileid")
+                    if fid:
+                        debtor_map[fid] = dr
             except:
                 pass
-        elif entity_ids[:500]:
-            for batch_start in range(0, min(len(entity_ids), 500), 100):
-                batch_ids = entity_ids[batch_start:batch_start+100]
-                id_conditions = " OR ".join([f"entity_id='{eid}'" for eid in batch_ids])
+        elif file_ids[:500]:
+            for batch_start in range(0, min(len(file_ids), 500), 100):
+                batch_ids = file_ids[batch_start:batch_start+100]
+                id_conditions = " OR ".join([f"fileid='{fid}'" for fid in batch_ids])
                 try:
                     debtor_params = {
                         "$limit": 1000,
@@ -162,9 +162,9 @@ class COUCCProspector(IndustryProspector):
                     response.raise_for_status()
                     debtor_records = response.json()
                     for dr in debtor_records:
-                        eid = dr.get("entity_id")
-                        if eid:
-                            debtor_map[eid] = dr
+                        fid = dr.get("fileid")
+                        if fid:
+                            debtor_map[fid] = dr
                 except:
                     pass
         
@@ -173,8 +173,8 @@ class COUCCProspector(IndustryProspector):
         
         prospects = []
         for record in all_records:
-            entity_id = record.get("entity_id")
-            debtor_info = debtor_map.get(entity_id, {})
+            file_id = record.get("fileid")
+            debtor_info = debtor_map.get(file_id, {})
             prospect = self._parse_record(record, debtor_info)
             if prospect:
                 if debtor_name:
@@ -200,28 +200,24 @@ class COUCCProspector(IndustryProspector):
         """Parse filing and debtor records into a ProspectRecord."""
         debtor = debtor or {}
         
-        debtor_name = debtor.get("debtor_name", "").strip()
+        debtor_name = debtor.get("organizationname", "").strip()
         if not debtor_name:
-            debtor_name = f"Entity #{filing.get('entity_id', 'Unknown')}"
+            debtor_name = f"Filing #{filing.get('transactionid', filing.get('masterdocumentid', 'Unknown'))}"
         
-        address = debtor.get("debtor_address", "")
-        city = debtor.get("debtor_city", "")
-        state = debtor.get("debtor_state", "CO")
-        zip_code = debtor.get("debtor_zip", "")
+        address = debtor.get("address1", "")
+        city = debtor.get("city", "")
+        state = debtor.get("state", "CO")
+        zip_code = debtor.get("zipcode", "")
         
-        file_date = filing.get("filing_date", "")
+        file_date = filing.get("filingdate", "")
         if file_date:
             try:
                 file_date = file_date[:10]
             except:
                 pass
         
-        lapse_date = filing.get("lapse_date", "")
-        if lapse_date:
-            try:
-                lapse_date = lapse_date[:10]
-            except:
-                pass
+        doc_type = filing.get("documenttype", "")
+        filing_type = filing.get("filingtype", "")
         
         return ProspectRecord(
             company_name=debtor_name,
@@ -239,15 +235,16 @@ class COUCCProspector(IndustryProspector):
             years_in_business=0,
             prospect_score=0,
             source="CO UCC Filings",
-            source_id=filing.get("transaction_id", filing.get("entity_id", "")),
+            source_id=filing.get("transactionid", filing.get("masterdocumentid", "")),
             raw_data={
-                "entity_id": filing.get("entity_id", ""),
-                "transaction_id": filing.get("transaction_id", ""),
-                "filing_type": filing.get("filing_type", ""),
+                "transaction_id": filing.get("transactionid", ""),
+                "master_doc_id": filing.get("masterdocumentid", ""),
+                "filing_type": filing_type,
+                "document_type": doc_type,
+                "transaction_type": filing.get("transactiontype", ""),
                 "filing_date": file_date,
-                "lapse_date": lapse_date,
-                "financial_statement_type": filing.get("financial_statement_type", ""),
-                "debtor_status": debtor.get("status", ""),
+                "continuation": filing.get("continuation", False),
+                "terminated": filing.get("terminationflag", False),
             }
         )
     
@@ -257,10 +254,16 @@ class COUCCProspector(IndustryProspector):
         
         raw = prospect.raw_data
         filing_type = raw.get("filing_type", "")
-        if filing_type == "UCC1":
+        if filing_type == "ucc":
             score += 15
-        elif filing_type == "UCC3":
+        elif filing_type == "efs":
+            score += 12
+        
+        trans_type = raw.get("transaction_type", "")
+        if trans_type == "Initial":
             score += 10
+        elif trans_type == "Amendment":
+            score += 5
         
         file_date = raw.get("filing_date", "")
         if file_date:
@@ -287,8 +290,8 @@ class COUCCProspector(IndustryProspector):
     def get_filing_types(self) -> List[str]:
         """Get available filing types from the dataset."""
         params = {
-            "$select": "filing_type",
-            "$group": "filing_type",
+            "$select": "filingtype",
+            "$group": "filingtype",
             "$limit": 50,
         }
         
@@ -296,6 +299,6 @@ class COUCCProspector(IndustryProspector):
             response = self.session.get(self.FILING_URL, params=params, timeout=30)
             response.raise_for_status()
             results = response.json()
-            return sorted([r.get("filing_type", "") for r in results if r.get("filing_type")])
+            return sorted([r.get("filingtype", "") for r in results if r.get("filingtype")])
         except:
-            return ["UCC1", "UCC3", "UCC5"]
+            return ["ucc", "efs", "lien_hosp", "lien_irs"]
