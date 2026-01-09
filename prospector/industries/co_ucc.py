@@ -228,7 +228,6 @@ class COUCCProspector(IndustryProspector):
             phone="",
             email="",
             website="",
-            contact_name="",
             industry="UCC Lien Filing",
             employee_count=0,
             annual_revenue=0,
