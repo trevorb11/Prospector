@@ -76,24 +76,24 @@ class CTUCCProspector(IndustryProspector):
         where_clauses = []
         
         if debtor_name:
-            where_clauses.append(f"upper(debtor_name) like '%{debtor_name.upper()}%'")
+            where_clauses.append(f"upper(debtor_nm_bus) like '%{debtor_name.upper()}%'")
         
         if secured_party:
-            where_clauses.append(f"upper(secured_party_name) like '%{secured_party.upper()}%'")
+            where_clauses.append(f"upper(sec_party_nm_bus) like '%{secured_party.upper()}%'")
         
         if cities:
-            city_conditions = " OR ".join([f"upper(debtor_city)='{c.upper()}'" for c in cities])
+            city_conditions = " OR ".join([f"upper(debtor_ad_city)='{c.upper()}'" for c in cities])
             where_clauses.append(f"({city_conditions})")
         
         if lien_types:
-            type_conditions = " OR ".join([f"lien_type='{t}'" for t in lien_types])
+            type_conditions = " OR ".join([f"cd_flng_type='{t}'" for t in lien_types])
             where_clauses.append(f"({type_conditions})")
         
         if filed_after:
-            where_clauses.append(f"file_date >= '{filed_after}'")
+            where_clauses.append(f"dt_accept >= '{filed_after}T00:00:00.000'")
         
         if filed_before:
-            where_clauses.append(f"file_date <= '{filed_before}'")
+            where_clauses.append(f"dt_accept <= '{filed_before}T23:59:59.000'")
         
         where_clause = " AND ".join(where_clauses) if where_clauses else None
         
@@ -108,7 +108,7 @@ class CTUCCProspector(IndustryProspector):
             params = {
                 "$limit": min(batch_size, limit - len(all_records)),
                 "$offset": offset,
-                "$order": "file_date DESC",
+                "$order": "dt_accept DESC",
             }
             
             if where_clause:
@@ -149,10 +149,10 @@ class CTUCCProspector(IndustryProspector):
         if progress_callback:
             progress_callback(90, "Scoring prospects...")
         
-        for prospect in prospects:
-            prospect.score = self._calculate_score(prospect, record)
+        for i, prospect in enumerate(prospects):
+            prospect.prospect_score = self._calculate_score(prospect, all_records[i] if i < len(all_records) else {})
         
-        prospects.sort(key=lambda x: x.score, reverse=True)
+        prospects.sort(key=lambda x: x.prospect_score, reverse=True)
         
         if progress_callback:
             progress_callback(100, f"Found {len(prospects):,} UCC filings")
@@ -161,29 +161,23 @@ class CTUCCProspector(IndustryProspector):
     
     def _parse_record(self, record: dict) -> Optional[ProspectRecord]:
         """Parse a raw Socrata record into a ProspectRecord."""
-        debtor_name = record.get("debtor_name", "").strip()
+        debtor_name = record.get("debtor_nm_bus", "").strip()
         if not debtor_name:
             return None
         
-        address_parts = []
-        if record.get("debtor_address"):
-            address_parts.append(record.get("debtor_address"))
+        address = record.get("debtor_ad_str1", "")
+        city = record.get("debtor_ad_city", "")
+        state = record.get("debtor_ad_state", "CT")
+        zip_code = record.get("debtor_ad_zip", "")
         
-        city = record.get("debtor_city", "")
-        state = record.get("debtor_state", "CT")
-        zip_code = record.get("debtor_zip", "")
-        
-        if city or state or zip_code:
-            address_parts.append(f"{city}, {state} {zip_code}".strip())
-        
-        file_date = record.get("file_date", "")
+        file_date = record.get("dt_accept", "")
         if file_date:
             try:
                 file_date = file_date[:10]
             except:
                 pass
         
-        lapse_date = record.get("lapse_date", "")
+        lapse_date = record.get("dt_lapse", "")
         if lapse_date:
             try:
                 lapse_date = lapse_date[:10]
@@ -192,20 +186,20 @@ class CTUCCProspector(IndustryProspector):
         
         return ProspectRecord(
             company_name=debtor_name,
-            address=", ".join(address_parts) if address_parts else "",
+            address=address,
             city=city,
             state=state,
             zip_code=zip_code,
-            industry_id=record.get("file_number", ""),
+            industry_id=record.get("id_ucc_flng_nbr", record.get("id_lien_flng_nbr", "")),
             source="CT UCC Filings",
             industry_data={
-                "File Number": record.get("file_number", ""),
-                "Lien Type": record.get("lien_type", ""),
-                "Secured Party": record.get("secured_party_name", ""),
+                "File Number": record.get("id_ucc_flng_nbr", record.get("id_lien_flng_nbr", "")),
+                "Filing Type": record.get("cd_flng_type", ""),
+                "Lien Description": record.get("tx_lien_descript", ""),
+                "Secured Party": record.get("sec_party_nm_bus", ""),
                 "File Date": file_date,
                 "Lapse Date": lapse_date,
-                "Status": record.get("status", ""),
-                "Collateral": record.get("collateral_description", ""),
+                "Status": record.get("lien_status", ""),
             }
         )
     
@@ -213,13 +207,11 @@ class CTUCCProspector(IndustryProspector):
         """Calculate a score for UCC-based prospects."""
         score = 50
         
-        lien_type = record.get("lien_type", "")
-        if lien_type == "UCC":
+        filing_type = record.get("cd_flng_type", "")
+        if "FIN STMT" in filing_type or "OFS" in filing_type:
             score += 15
-        elif "Equipment" in lien_type or "Lease" in lien_type:
-            score += 20
         
-        file_date = record.get("file_date", "")
+        file_date = record.get("dt_accept", "")
         if file_date:
             try:
                 filed = datetime.strptime(file_date[:10], "%Y-%m-%d")
@@ -239,12 +231,9 @@ class CTUCCProspector(IndustryProspector):
         if prospect.zip_code:
             score += 5
         
-        collateral = record.get("collateral_description", "").lower()
-        high_value_keywords = ["equipment", "vehicle", "inventory", "accounts receivable", "machinery"]
-        for keyword in high_value_keywords:
-            if keyword in collateral:
-                score += 5
-                break
+        status = record.get("lien_status", "")
+        if status == "Active":
+            score += 5
         
         return min(100, score)
     

@@ -77,20 +77,20 @@ class ORUCCProspector(IndustryProspector):
         where_clauses = []
         
         if debtor_name:
-            where_clauses.append(f"upper(debtor_name) like '%{debtor_name.upper()}%'")
+            where_clauses.append(f"upper(entity) like '%{debtor_name.upper()}%' AND party_type='DB'")
         
         if secured_party:
-            where_clauses.append(f"upper(secured_party) like '%{secured_party.upper()}%'")
+            where_clauses.append(f"upper(entity) like '%{secured_party.upper()}%' AND party_type='SP'")
         
         if lien_types:
             type_conditions = " OR ".join([f"lien_type='{t}'" for t in lien_types])
             where_clauses.append(f"({type_conditions})")
         
         if filed_after:
-            where_clauses.append(f"filing_date >= '{filed_after}'")
+            where_clauses.append(f"filing_date >= '{filed_after}T00:00:00.000'")
         
         if filed_before:
-            where_clauses.append(f"filing_date <= '{filed_before}'")
+            where_clauses.append(f"filing_date <= '{filed_before}T23:59:59.000'")
         
         where_clause = " AND ".join(where_clauses) if where_clauses else None
         
@@ -158,9 +158,14 @@ class ORUCCProspector(IndustryProspector):
     
     def _parse_record(self, record: dict) -> Optional[ProspectRecord]:
         """Parse a raw Socrata record into a ProspectRecord."""
-        debtor_name = record.get("debtor_name", "").strip()
-        if not debtor_name:
+        entity_name = record.get("entity", "").strip()
+        if not entity_name:
             return None
+        
+        address = record.get("mail_addr_1", "")
+        city = record.get("city_descr", "")
+        state = record.get("st_cd_txt", "OR")
+        zip_code = record.get("zip_code_txt", "")
         
         file_date = record.get("filing_date", "")
         if file_date:
@@ -176,17 +181,23 @@ class ORUCCProspector(IndustryProspector):
             except:
                 pass
         
+        party_type = record.get("party_type", "")
+        
         return ProspectRecord(
-            company_name=debtor_name,
-            state="OR",
-            industry_id=record.get("file_number", record.get("lien_number", "")),
+            company_name=entity_name,
+            address=address,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+            industry_id=record.get("file_number", record.get("original_file_number", "")),
             source="OR UCC Filings",
             industry_data={
                 "File Number": record.get("file_number", ""),
-                "Lien Number": record.get("lien_number", ""),
+                "Original File Number": record.get("original_file_number", ""),
                 "Lien Type": record.get("lien_type", ""),
                 "File Type": record.get("file_type", ""),
-                "Secured Party": record.get("secured_party", ""),
+                "Party Type": "Secured Party" if party_type == "SP" else "Debtor" if party_type == "DB" else party_type,
+                "Entity Type": record.get("entity_type", ""),
                 "Filing Date": file_date,
                 "Lapse Date": lapse_date,
             }
