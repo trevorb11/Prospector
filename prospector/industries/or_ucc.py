@@ -178,28 +178,17 @@ class ORUCCProspector(IndustryProspector):
         
         return ProspectRecord(
             company_name=debtor_name,
-            address="",
-            city="",
             state="OR",
-            zip_code="",
-            phone="",
-            email="",
-            website="",
-            industry="UCC Lien Filing",
-            employee_count=0,
-            annual_revenue=0,
-            years_in_business=0,
-            prospect_score=0,
+            industry_id=record.get("file_number", record.get("lien_number", "")),
             source="OR UCC Filings",
-            source_id=record.get("file_number", record.get("lien_number", "")),
-            raw_data={
-                "file_number": record.get("file_number", ""),
-                "lien_number": record.get("lien_number", ""),
-                "lien_type": record.get("lien_type", ""),
-                "file_type": record.get("file_type", ""),
-                "secured_party": record.get("secured_party", ""),
-                "filing_date": file_date,
-                "lapse_date": lapse_date,
+            industry_data={
+                "File Number": record.get("file_number", ""),
+                "Lien Number": record.get("lien_number", ""),
+                "Lien Type": record.get("lien_type", ""),
+                "File Type": record.get("file_type", ""),
+                "Secured Party": record.get("secured_party", ""),
+                "Filing Date": file_date,
+                "Lapse Date": lapse_date,
             }
         )
     

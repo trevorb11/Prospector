@@ -196,24 +196,16 @@ class CTUCCProspector(IndustryProspector):
             city=city,
             state=state,
             zip_code=zip_code,
-            phone="",
-            email="",
-            website="",
-            industry="UCC Lien Filing",
-            employee_count=0,
-            annual_revenue=0,
-            years_in_business=0,
-            score=0,
+            industry_id=record.get("file_number", ""),
             source="CT UCC Filings",
-            source_id=record.get("file_number", ""),
-            raw_data={
-                "file_number": record.get("file_number", ""),
-                "lien_type": record.get("lien_type", ""),
-                "secured_party": record.get("secured_party_name", ""),
-                "file_date": file_date,
-                "lapse_date": lapse_date,
-                "status": record.get("status", ""),
-                "collateral": record.get("collateral_description", ""),
+            industry_data={
+                "File Number": record.get("file_number", ""),
+                "Lien Type": record.get("lien_type", ""),
+                "Secured Party": record.get("secured_party_name", ""),
+                "File Date": file_date,
+                "Lapse Date": lapse_date,
+                "Status": record.get("status", ""),
+                "Collateral": record.get("collateral_description", ""),
             }
         )
     

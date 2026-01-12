@@ -225,25 +225,17 @@ class COUCCProspector(IndustryProspector):
             city=city,
             state=state,
             zip_code=zip_code,
-            phone="",
-            email="",
-            website="",
-            industry="UCC Lien Filing",
-            employee_count=0,
-            annual_revenue=0,
-            years_in_business=0,
-            prospect_score=0,
+            industry_id=filing.get("transactionid", filing.get("masterdocumentid", "")),
             source="CO UCC Filings",
-            source_id=filing.get("transactionid", filing.get("masterdocumentid", "")),
-            raw_data={
-                "transaction_id": filing.get("transactionid", ""),
-                "master_doc_id": filing.get("masterdocumentid", ""),
-                "filing_type": filing_type,
-                "document_type": doc_type,
-                "transaction_type": filing.get("transactiontype", ""),
-                "filing_date": file_date,
-                "continuation": filing.get("continuation", False),
-                "terminated": filing.get("terminationflag", False),
+            industry_data={
+                "Transaction ID": filing.get("transactionid", ""),
+                "Master Doc ID": filing.get("masterdocumentid", ""),
+                "Filing Type": filing_type,
+                "Document Type": doc_type,
+                "Transaction Type": filing.get("transactiontype", ""),
+                "Filing Date": file_date,
+                "Continuation": "Yes" if filing.get("continuation") else "No",
+                "Terminated": "Yes" if filing.get("terminationflag") else "No",
             }
         )
     
@@ -251,20 +243,20 @@ class COUCCProspector(IndustryProspector):
         """Calculate a score for UCC-based prospects."""
         score = 50
         
-        raw = prospect.raw_data
-        filing_type = raw.get("filing_type", "")
+        data = prospect.industry_data
+        filing_type = data.get("Filing Type", "")
         if filing_type == "ucc":
             score += 15
         elif filing_type == "efs":
             score += 12
         
-        trans_type = raw.get("transaction_type", "")
+        trans_type = data.get("Transaction Type", "")
         if trans_type == "Initial":
             score += 10
         elif trans_type == "Amendment":
             score += 5
         
-        file_date = raw.get("filing_date", "")
+        file_date = data.get("Filing Date", "")
         if file_date:
             try:
                 filed = datetime.strptime(file_date[:10], "%Y-%m-%d")
