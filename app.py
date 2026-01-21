@@ -926,6 +926,7 @@ def run_ct_ucc_job(job: ProspectorJob):
             cities=cities,
             lien_types=lien_types,
             filed_after=job.config.get("filed_after") or None,
+            filed_before=job.config.get("filed_before") or None,
             active_only=job.config.get("active_only", True),
             limit=job.config.get("limit", 1000),
             progress_callback=progress_callback
@@ -982,6 +983,7 @@ def run_or_ucc_job(job: ProspectorJob):
             debtor_name=job.config.get("debtor_name") or None,
             secured_party=job.config.get("secured_party") or None,
             filed_after=job.config.get("filed_after") or None,
+            filed_before=job.config.get("filed_before") or None,
             limit=job.config.get("limit", 1000),
             offset=job.config.get("offset", 0),
             progress_callback=progress_callback
@@ -1038,6 +1040,7 @@ def run_co_ucc_job(job: ProspectorJob):
             debtor_name=job.config.get("debtor_name") or None,
             filing_type=job.config.get("filing_type") or None,
             filed_after=job.config.get("filed_after") or None,
+            filed_before=job.config.get("filed_before") or None,
             limit=job.config.get("limit", 1000),
             offset=job.config.get("offset", 0),
             progress_callback=progress_callback
@@ -1475,6 +1478,7 @@ def start_ct_ucc_search():
         "cities": data.get("cities", ""),
         "lien_types": data.get("lien_types", ""),
         "filed_after": data.get("filed_after", ""),
+        "filed_before": data.get("filed_before", ""),
         "active_only": data.get("active_only", True),
         "limit": int(data.get("limit", 1000)),
     })
@@ -1498,6 +1502,7 @@ def start_or_ucc_search():
         "debtor_name": data.get("debtor_name", ""),
         "secured_party": data.get("secured_party", ""),
         "filed_after": data.get("filed_after", ""),
+        "filed_before": data.get("filed_before", ""),
         "limit": int(data.get("limit", 1000)),
         "offset": int(data.get("offset", 0)),
     })
@@ -1521,6 +1526,7 @@ def start_co_ucc_search():
         "debtor_name": data.get("debtor_name", ""),
         "filing_type": data.get("filing_type", ""),
         "filed_after": data.get("filed_after", ""),
+        "filed_before": data.get("filed_before", ""),
         "limit": int(data.get("limit", 1000)),
         "offset": int(data.get("offset", 0)),
     })

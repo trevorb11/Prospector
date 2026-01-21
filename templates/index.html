@@ -586,12 +586,17 @@
                                                value=""
                                                placeholder="e.g., Hartford, New Haven">
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
-                                        <input type="date" class="form-control" id="ctUCCFiledAfterInline"
-                                               value="">
-                                        <small class="text-muted">Only show filings after this date</small>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed After</label>
+                                            <input type="date" class="form-control" id="ctUCCFiledAfterInline" value="">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed Before</label>
+                                            <input type="date" class="form-control" id="ctUCCFiledBeforeInline" value="">
+                                        </div>
                                     </div>
+                                    <small class="text-muted mb-3 d-block">Filter filings by date range</small>
                                     <div class="mb-3">
                                         <label class="form-label fw-semibold">Max Records</label>
                                         <select class="form-select" id="ctUCCLimitInline">
@@ -621,12 +626,17 @@
                                                placeholder="e.g., First National Bank">
                                         <small class="text-muted">Search by lender/creditor name</small>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
-                                        <input type="date" class="form-control" id="orUCCFiledAfterInline"
-                                               value="">
-                                        <small class="text-muted">Only show filings after this date</small>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed After</label>
+                                            <input type="date" class="form-control" id="orUCCFiledAfterInline" value="">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed Before</label>
+                                            <input type="date" class="form-control" id="orUCCFiledBeforeInline" value="">
+                                        </div>
                                     </div>
+                                    <small class="text-muted mb-3 d-block">Filter filings by date range</small>
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label class="form-label fw-semibold">Max Records</label>
@@ -666,12 +676,17 @@
                                             <option value="lien_agis">Agricultural Liens</option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
-                                        <label class="form-label fw-semibold">Filed After (Optional)</label>
-                                        <input type="date" class="form-control" id="coUCCFiledAfterInline"
-                                               value="">
-                                        <small class="text-muted">Only show filings after this date</small>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed After</label>
+                                            <input type="date" class="form-control" id="coUCCFiledAfterInline" value="">
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label class="form-label fw-semibold">Filed Before</label>
+                                            <input type="date" class="form-control" id="coUCCFiledBeforeInline" value="">
+                                        </div>
                                     </div>
+                                    <small class="text-muted mb-3 d-block">Filter filings by date range</small>
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label class="form-label fw-semibold">Max Records</label>
@@ -3438,6 +3453,7 @@
             secured_party: document.getElementById('ctUCCSecuredPartyInline').value,
             cities: document.getElementById('ctUCCCitiesInline').value,
             filed_after: document.getElementById('ctUCCFiledAfterInline').value,
+            filed_before: document.getElementById('ctUCCFiledBeforeInline').value,
             active_only: true,
             limit: document.getElementById('ctUCCLimitInline').value
         }), '<i class="bi bi-play-fill me-1"></i> Search CT UCC Filings');
@@ -3446,6 +3462,7 @@
             debtor_name: document.getElementById('orUCCDebtorInline').value,
             secured_party: document.getElementById('orUCCSecuredPartyInline').value,
             filed_after: document.getElementById('orUCCFiledAfterInline').value,
+            filed_before: document.getElementById('orUCCFiledBeforeInline').value,
             limit: document.getElementById('orUCCLimitInline').value,
             offset: document.getElementById('orUCCOffsetInline').value
         }), '<i class="bi bi-play-fill me-1"></i> Search OR UCC Filings');
@@ -3454,6 +3471,7 @@
             debtor_name: document.getElementById('coUCCDebtorInline').value,
             filing_type: document.getElementById('coUCCFilingTypeInline').value,
             filed_after: document.getElementById('coUCCFiledAfterInline').value,
+            filed_before: document.getElementById('coUCCFiledBeforeInline').value,
             limit: document.getElementById('coUCCLimitInline').value,
             offset: document.getElementById('coUCCOffsetInline').value
         }), '<i class="bi bi-play-fill me-1"></i> Search CO UCC Filings');
