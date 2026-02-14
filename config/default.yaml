@@ -77,12 +77,56 @@ output:
   include_hot_file: true
   hot_threshold: 70
 
+# MCA Scoring Settings
+# ===================
+# Industry-specific scoring profiles for Merchant Cash Advance prospecting
+mca_scoring:
+  # Default industry if not auto-detected
+  default_industry: general
+
+  # Enable UCC cross-referencing during scoring
+  enable_ucc_crossref: true
+
+  # States to search for UCC filings
+  ucc_crossref_states:
+    - CT
+    - OR
+    - CO
+
+  # UCC name match threshold (0.0-1.0)
+  ucc_match_threshold: 0.80
+
+  # Score thresholds for risk tiers
+  risk_tiers:
+    prime: 80      # A tier - best prospects
+    standard: 65   # B tier - solid prospects
+    moderate: 50   # C tier - worth a call
+    higher_risk: 35 # D tier - lower priority
+
 # API Settings (optional)
-# Set these for higher rate limits
+# Set these for higher rate limits and enrichment features
 api:
   # Socrata app token (get one at https://data.transportation.gov)
   # Can also be set via SOCRATA_APP_TOKEN environment variable
   socrata_app_token: null
+
+  # SAM.gov API key (get one at https://sam.gov/developers)
+  # Can also be set via SAM_API_KEY environment variable
+  sam_api_key: null
+
+  # OpenCorporates API key (optional, free tier at https://opencorporates.com/api_accounts/new)
+  # Can also be set via OPENCORPORATES_API_KEY environment variable
+  opencorporates_api_key: null
+
+  # Google Places API key (get one at https://console.cloud.google.com)
+  # Can also be set via GOOGLE_PLACES_API_KEY environment variable
+  # Pricing: ~$0.017/basic request, ~$0.032/detail request
+  google_places_api_key: null
+
+  # Yelp Fusion API key (get one at https://www.yelp.com/developers)
+  # Can also be set via YELP_API_KEY environment variable
+  # Free tier: 5,000 calls/day
+  yelp_api_key: null
 
   # Rate limiting
   requests_per_second: 2

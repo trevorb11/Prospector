@@ -183,6 +183,23 @@ class TruckingProspector(IndustryProspector):
         except (ValueError, TypeError):
             drivers = None
 
+        # Estimate years in business from MCS-150 date
+        years_in_business = None
+        mcs150_date = raw_record.get("mcs150_date")
+        if mcs150_date:
+            try:
+                if len(mcs150_date) >= 10:
+                    if "-" in mcs150_date:
+                        dt = datetime.strptime(mcs150_date[:10], "%Y-%m-%d")
+                    elif "/" in mcs150_date:
+                        dt = datetime.strptime(mcs150_date[:10], "%m/%d/%Y")
+                    else:
+                        dt = None
+                    if dt:
+                        years_in_business = max(1, (datetime.now() - dt).days / 365 + 2)
+            except (ValueError, TypeError):
+                pass
+
         return ProspectRecord(
             company_name=raw_record.get("legal_name", ""),
             dba_name=raw_record.get("dba_name"),
@@ -200,6 +217,7 @@ class TruckingProspector(IndustryProspector):
             business_size_metric=power_units,
             business_size_label="Trucks",
             employee_count=drivers,
+            years_in_business=years_in_business,
             industry_data={
                 "DOT Number": raw_record.get("dot_number"),
                 "Drivers": drivers,

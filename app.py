@@ -1789,6 +1789,485 @@ def get_file_columns():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/mca-score", methods=["POST"])
+def start_mca_scoring():
+    """
+    Re-score an existing prospect file using MCA-specific scoring.
+    Optionally cross-references against UCC filings for financing history.
+    """
+    data = request.json or {}
+
+    input_file = data.get("input_file", "").strip()
+    industry = data.get("industry", "general")
+    enable_ucc = data.get("enable_ucc_crossref", False)
+    ucc_states = data.get("ucc_states", ["CT", "OR", "CO"])
+
+    if not input_file:
+        return jsonify({"error": "Please provide an input_file (existing output CSV)"}), 400
+
+    # Verify file exists
+    input_path = OUTPUT_DIR / input_file
+    if not input_path.exists():
+        return jsonify({"error": f"File not found: {input_file}"}), 404
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "input_file": input_file,
+        "industry": industry,
+        "enable_ucc_crossref": enable_ucc,
+        "ucc_states": ucc_states,
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_mca_scoring_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+def run_mca_scoring_job(job: ProspectorJob):
+    """Run MCA-specific scoring on an existing prospect file."""
+    try:
+        import pandas as pd
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Loading prospect data..."
+        job.progress = 5
+
+        from prospector.core.mca_scoring import MCAScorer, MCAIndustryProfile, detect_industry_profile
+        from prospector.core.ucc_crossref import UCCCrossReferencer
+        from prospector.core.base import ProspectRecord
+
+        input_path = OUTPUT_DIR / job.config["input_file"]
+        df = pd.read_csv(input_path)
+
+        if df.empty:
+            job.status = "completed"
+            job.progress = 100
+            job.progress_message = "No data in file"
+            job.stats = {"total": 0}
+            job.completed_at = datetime.now()
+            return
+
+        job.progress = 10
+        job.progress_message = f"Loaded {len(df)} records. Converting to prospect records..."
+
+        # Convert DataFrame rows back to ProspectRecords
+        prospects = []
+        for _, row in df.iterrows():
+            record = ProspectRecord(
+                company_name=str(row.get("Company Name", "")),
+                dba_name=str(row.get("DBA Name", "")) if row.get("DBA Name") else None,
+                phone=str(row.get("Phone", "")) if row.get("Phone") else None,
+                email=str(row.get("Email", "")) if row.get("Email") else None,
+                website=str(row.get("Website", "")) if row.get("Website") else None,
+                address=str(row.get("Address", "")) if row.get("Address") else None,
+                city=str(row.get("City", "")) if row.get("City") else None,
+                state=str(row.get("State", "")) if row.get("State") else None,
+                zip_code=str(row.get("ZIP", "")) if row.get("ZIP") else None,
+                industry_id=str(row.get("Industry ID", "")) if row.get("Industry ID") else None,
+                source=str(row.get("Source", "")) if row.get("Source") else None,
+            )
+
+            # Try to set business_size_metric from common column names
+            for col in ["Trucks", "Aircraft", "Providers", "Business Size"]:
+                if col in row and pd.notna(row[col]):
+                    try:
+                        record.business_size_metric = float(row[col])
+                        record.business_size_label = col
+                        break
+                    except (ValueError, TypeError):
+                        pass
+
+            # Try to set employee_count
+            if "Employees" in row and pd.notna(row["Employees"]):
+                try:
+                    record.employee_count = int(row["Employees"])
+                except (ValueError, TypeError):
+                    pass
+
+            # Try to set years_in_business
+            if "Years in Business" in row and pd.notna(row["Years in Business"]):
+                try:
+                    record.years_in_business = float(row["Years in Business"])
+                except (ValueError, TypeError):
+                    pass
+
+            # Carry over industry data from extra columns
+            standard_cols = {
+                "Score", "Company Name", "DBA Name", "Phone", "Email", "Website",
+                "Address", "City", "State", "ZIP", "Industry ID", "Employees",
+                "Years in Business", "Source", "Trucks", "Aircraft", "Providers",
+                "Business Size",
+            }
+            for col in df.columns:
+                if col not in standard_cols and pd.notna(row.get(col)):
+                    record.industry_data[col] = row[col]
+
+            prospects.append(record)
+
+        # Detect industry or use specified
+        industry_str = job.config.get("industry", "general")
+        try:
+            industry_profile = MCAIndustryProfile(industry_str)
+        except ValueError:
+            # Auto-detect from source
+            if prospects:
+                industry_profile = detect_industry_profile(prospects[0].source or "")
+            else:
+                industry_profile = MCAIndustryProfile.GENERAL
+
+        # UCC cross-referencing
+        ucc_matches = {}
+        if job.config.get("enable_ucc_crossref", False):
+            job.progress = 20
+            job.progress_message = "Cross-referencing against UCC filings..."
+
+            crossref = UCCCrossReferencer(
+                states=job.config.get("ucc_states", ["CT", "OR", "CO"]),
+                app_token=os.environ.get("SOCRATA_APP_TOKEN"),
+            )
+
+            def ucc_progress(pct, msg):
+                job.progress = 20 + int(pct * 0.4)  # 20-60%
+                job.progress_message = msg
+
+            ucc_matches = crossref.cross_reference_prospects(
+                prospects, progress_callback=ucc_progress
+            )
+
+        # MCA scoring
+        job.progress = 65
+        job.progress_message = f"Applying MCA scoring ({industry_profile.value} profile)..."
+
+        scorer = MCAScorer(
+            industry=industry_profile,
+            ucc_matches=ucc_matches,
+        )
+
+        scored_prospects = scorer.score_batch(prospects)
+
+        job.progress = 90
+        job.progress_message = "Generating output files..."
+
+        # Export
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_filename = f"mca_scored_{industry_profile.value}_{timestamp}.csv"
+        output_path = OUTPUT_DIR / output_filename
+
+        result_df = pd.DataFrame([p.to_dict() for p in scored_prospects])
+        result_df.to_csv(output_path, index=False)
+        job.output_file = output_filename
+
+        # Hot prospects
+        if not result_df.empty and "Score" in result_df.columns:
+            hot_df = result_df[result_df["Score"] >= 70]
+            if not hot_df.empty:
+                hot_filename = f"mca_scored_{industry_profile.value}_{timestamp}_HOT.csv"
+                hot_path = OUTPUT_DIR / hot_filename
+                hot_df.to_csv(hot_path, index=False)
+                job.hot_file = hot_filename
+
+        # Stats
+        if not result_df.empty and "Score" in result_df.columns:
+            job.stats = {
+                "total": len(result_df),
+                "hot_count": len(result_df[result_df["Score"] >= 70]),
+                "medium_count": len(result_df[(result_df["Score"] >= 50) & (result_df["Score"] < 70)]),
+                "low_count": len(result_df[result_df["Score"] < 50]),
+                "avg_score": round(result_df["Score"].mean(), 1),
+                "industry_profile": industry_profile.value,
+                "ucc_matches_found": len(ucc_matches),
+                "scoring_summary": scorer.get_scoring_summary(),
+            }
+        else:
+            job.stats = {"total": 0}
+
+        job.progress = 100
+        job.progress_message = "MCA scoring complete!"
+        job.status = "completed"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+@app.route("/api/ucc-search", methods=["POST"])
+def start_ucc_search():
+    """Search UCC filings across available states."""
+    data = request.json or {}
+
+    debtor_name = data.get("debtor_name", "").strip()
+    states = data.get("states", ["CT", "OR", "CO"])
+    if isinstance(states, str):
+        states = [s.strip().upper() for s in states.split(",")]
+
+    if not debtor_name:
+        return jsonify({"error": "Please provide a debtor_name"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "debtor_name": debtor_name,
+        "states": states,
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_ucc_search_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+def run_ucc_search_job(job: ProspectorJob):
+    """Run a UCC filing search."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Searching UCC filings..."
+
+        from prospector.core.ucc_crossref import UCCCrossReferencer
+
+        crossref = UCCCrossReferencer(
+            states=job.config.get("states", ["CT", "OR", "CO"]),
+            app_token=os.environ.get("SOCRATA_APP_TOKEN"),
+        )
+
+        results = crossref.search_ucc_by_name(
+            job.config["debtor_name"],
+            limit=50,
+        )
+
+        # Get financing summary
+        summary = crossref.get_financing_summary(job.config["debtor_name"])
+
+        job.result = {
+            "filings": results[:50],
+            "summary": summary,
+        }
+        job.stats = {
+            "filing_count": len(results),
+            "has_mca_history": summary.get("has_mca_history", False),
+            "lenders": summary.get("lenders", []),
+        }
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = f"Found {len(results)} UCC filings"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+@app.route("/api/enrich-business", methods=["POST"])
+def start_business_enrichment():
+    """Enrich a company with data from OpenCorporates, Google Places, Yelp, and SEC EDGAR."""
+    data = request.json or {}
+
+    company_name = data.get("company_name", "").strip()
+    city = data.get("city", "").strip()
+    state = data.get("state", "").strip().upper()
+    sources = data.get("sources")  # Optional: ["opencorporates", "google_places", "yelp", "sec_edgar"]
+
+    if not company_name:
+        return jsonify({"error": "Please provide a company_name"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "company_name": company_name,
+        "city": city,
+        "state": state,
+        "sources": sources,
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_business_enrichment_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+def run_business_enrichment_job(job: ProspectorJob):
+    """Run business enrichment for a single company."""
+    try:
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Enriching business data..."
+
+        from prospector.core.base import ProspectRecord
+        from prospector.industries.business_search import BusinessEnrichmentPipeline
+
+        prospect = ProspectRecord(
+            company_name=job.config["company_name"],
+            city=job.config.get("city"),
+            state=job.config.get("state"),
+        )
+
+        pipeline = BusinessEnrichmentPipeline()
+        enrichment = pipeline.enrich_prospect(
+            prospect,
+            sources=job.config.get("sources"),
+        )
+
+        job.result = enrichment
+        job.stats = {
+            "sources_checked": pipeline.get_available_sources(),
+            "matches_found": sum(1 for k, v in enrichment.items() if k.endswith("_matched") and v),
+        }
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = "Enrichment complete"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+@app.route("/api/new-businesses", methods=["POST"])
+def start_new_business_search():
+    """Search for recently registered businesses from Secretary of State data."""
+    data = request.json or {}
+
+    states_str = data.get("states", "FL")
+    states = [s.strip().upper() for s in states_str.split(",") if s.strip()]
+    filed_after = data.get("filed_after")  # YYYY-MM-DD
+    business_types = data.get("business_types")  # ["LLC", "CORP"]
+    limit = int(data.get("limit", 1000))
+
+    if not states:
+        return jsonify({"error": "Please provide at least one state"}), 400
+
+    job_id = str(uuid.uuid4())
+    job = ProspectorJob(job_id, {
+        "states": states,
+        "filed_after": filed_after,
+        "business_types": business_types,
+        "limit": limit,
+    })
+
+    jobs[job_id] = job
+
+    thread = threading.Thread(target=run_new_business_search_job, args=(job,))
+    thread.daemon = True
+    thread.start()
+
+    return jsonify({"job_id": job_id})
+
+
+def run_new_business_search_job(job: ProspectorJob):
+    """Run a new business registration search."""
+    try:
+        import pandas as pd
+        job.status = "running"
+        job.started_at = datetime.now()
+        job.progress_message = "Searching Secretary of State records..."
+
+        from prospector.industries.business_search import SecretaryOfStateSearcher
+
+        searcher = SecretaryOfStateSearcher(
+            app_token=os.environ.get("SOCRATA_APP_TOKEN"),
+        )
+
+        all_results = []
+        states = job.config["states"]
+        total_states = len(states)
+
+        for i, state in enumerate(states):
+            job.progress = int((i / total_states) * 80)
+            job.progress_message = f"Searching {state}... ({i+1}/{total_states})"
+
+            results = searcher.search_new_businesses(
+                state=state,
+                filed_after=job.config.get("filed_after"),
+                business_types=job.config.get("business_types"),
+                limit=job.config.get("limit", 1000),
+            )
+            all_results.extend(results)
+
+        # Export to CSV
+        job.progress = 90
+        job.progress_message = "Generating output file..."
+
+        if all_results:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            states_str = "_".join(job.config["states"][:3])
+            filename = f"new_businesses_{states_str}_{timestamp}.csv"
+            filepath = OUTPUT_DIR / filename
+
+            df = pd.DataFrame(all_results)
+            df.to_csv(filepath, index=False)
+            job.output_file = filename
+
+        job.result = all_results[:50]  # Return first 50 for preview
+        job.stats = {
+            "total": len(all_results),
+            "by_state": {},
+        }
+        for r in all_results:
+            st = r.get("state", "Unknown")
+            job.stats["by_state"][st] = job.stats["by_state"].get(st, 0) + 1
+
+        job.status = "completed"
+        job.progress = 100
+        job.progress_message = f"Found {len(all_results)} new business registrations"
+        job.completed_at = datetime.now()
+
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.completed_at = datetime.now()
+
+
+@app.route("/api/mca-scoring-config", methods=["GET"])
+def get_mca_scoring_config():
+    """Get the current MCA scoring configuration for all industry profiles."""
+    from prospector.core.mca_scoring import (
+        MCAScorer, MCAIndustryProfile, INDUSTRY_PROFILES, SEASONAL_PATTERNS
+    )
+
+    configs = {}
+    for profile in MCAIndustryProfile:
+        scorer = MCAScorer(industry=profile)
+        configs[profile.value] = scorer.get_scoring_summary()
+
+    return jsonify({
+        "profiles": configs,
+        "available_industries": [p.value for p in MCAIndustryProfile],
+    })
+
+
+@app.route("/api/enrichment-sources", methods=["GET"])
+def get_enrichment_sources():
+    """Get available enrichment data sources and their configuration status."""
+    from prospector.industries.business_search import BusinessEnrichmentPipeline
+    from prospector.core.ucc_crossref import UCC_ENDPOINTS
+
+    pipeline = BusinessEnrichmentPipeline()
+
+    return jsonify({
+        "enrichment_sources": pipeline.get_available_sources(),
+        "ucc_states_available": list(UCC_ENDPOINTS.keys()),
+        "api_keys_configured": {
+            "socrata_app_token": bool(os.environ.get("SOCRATA_APP_TOKEN")),
+            "google_places_api_key": bool(os.environ.get("GOOGLE_PLACES_API_KEY")),
+            "yelp_api_key": bool(os.environ.get("YELP_API_KEY")),
+            "opencorporates_api_key": bool(os.environ.get("OPENCORPORATES_API_KEY")),
+            "sam_api_key": bool(os.environ.get("SAM_API_KEY")),
+        },
+    })
+
+
 @app.route("/api/health")
 def health_check():
     """Health check endpoint."""
